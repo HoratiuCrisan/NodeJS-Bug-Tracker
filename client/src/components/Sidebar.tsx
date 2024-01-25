@@ -21,7 +21,7 @@ const sidebarElements = [
 export const Sidebar = () => {
     const navigate = useNavigate()
     return (
-        <aside className='fixed hidden lg:block lg:w-1/6 h-screen bg-gray-100'>
+        <aside className='fixed hidden lg:block lg:w-1/6 2xl:w-56 h-screen bg-gray-100'>
             {sidebarElements.map((elem) => (
                 <div 
                     key={elem.id}
