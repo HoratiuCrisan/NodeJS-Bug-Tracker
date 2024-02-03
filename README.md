@@ -2,7 +2,7 @@
 
 ## Overview
 
-Welcome to our web-based bug tracking application, a powerful platform designed to optimize your software development process. Built on a resilient microservices architecture, this application seamlessly integrates React, Tailwind CSS, and TypeScript on the frontend, with Express, Node.js, and Golang powering the backend. Firebase acts as the database backbone, ensuring real-time data synchronization and scalability.
+Welcome to my web-based bug tracking application, a powerful platform designed to optimize your software development process. Built on a resilient microservices architecture, this application seamlessly integrates React, Tailwind CSS, and TypeScript on the frontend, with Express, Node.js, and Golang powering the backend. Firebase acts as the database backbone, ensuring real-time data synchronization and scalability.
 
 ## Features
 
