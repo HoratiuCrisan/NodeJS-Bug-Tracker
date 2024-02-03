@@ -31,4 +31,4 @@ Maintain code integrity and track changes seamlessly with the integrated version
 This application adopts a role-based structure, catering to the unique needs of administrators, project managers, developers, and users. Each role provides access to functionalities specific to their responsibilities, creating a personalized and focused user experience.
 
 ## Architecture diagram
-![BugTracker Architecture](https://previews.dropbox.com/p/thumb/ACJbUMhGEYUr5lxAQ4ct5pMtVWKW8IP7DssXhlSMjE8D5ytgJaxHrwNrbHodY8muGN9qSYOBUbnfASGO_ksFdVsvUJSjJQz1tqStqyQjHAKPWcMy5vcMFIklylIcTEr2stPfqp_kqvD_0PZwwAoxMDbYWnHK5rLxswvNjMZeOHT20NqqcawOgwc2DaVZBq3z-aTOv6XGFfIyqeifyT5AKNLPFffTN5LuqqviASPUYoa_YLm-HK1j0S506zeyRxhqHUXT1qL_JoQ2WYae6ShgHsQ9kr2wceAsq3EWh9PwDXSy-Xjs1P6kv7uYuvFtfghcFg3SjkttOPhK_U_fD57KmfG9/p.jpeg)
+![BugTracker Architecture](https://www.dropbox.com/scl/fi/91sz201801gjms2a7szit/BugTrackerArchitecture.jpg?rlkey=qez27hzwilqsfzp34z0r4wout&dl=0)
