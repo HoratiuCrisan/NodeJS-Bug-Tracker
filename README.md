@@ -30,6 +30,15 @@ Maintain code integrity and track changes seamlessly with the integrated version
 
 This application adopts a role-based structure, catering to the unique needs of administrators, project managers, developers, and users. Each role provides access to functionalities specific to their responsibilities, creating a personalized and focused user experience.
 
-## Architecture diagram
+### Architecture Diagram
 ![BugTrackerArchitecture](https://github.com/HoratiuCrisan/NodeJS-Bug-Tracker/assets/92850549/cb21580e-9436-4b12-8187-e9006c7eb839)
+
+### Authentication Design
+![Register](https://github.com/HoratiuCrisan/NodeJS-Bug-Tracker/assets/92850549/c09d3eae-1e80-4ad6-b178-08a3e88f062f)
+
+### Ticket Registration Form
+![ticket form](https://github.com/HoratiuCrisan/NodeJS-Bug-Tracker/assets/92850549/6213075f-fb6e-496f-89c0-d164d0a80ef9)
+
+### Tickets Page Demo Design
+![myTickets](https://github.com/HoratiuCrisan/NodeJS-Bug-Tracker/assets/92850549/83ff1f88-6cf9-488f-a0b3-abb363bf9bdd)
 
