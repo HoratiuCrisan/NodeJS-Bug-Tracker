@@ -31,4 +31,5 @@ Maintain code integrity and track changes seamlessly with the integrated version
 This application adopts a role-based structure, catering to the unique needs of administrators, project managers, developers, and users. Each role provides access to functionalities specific to their responsibilities, creating a personalized and focused user experience.
 
 ## Architecture diagram
-![BugTracker Architecture](https://www.dropbox.com/scl/fi/91sz201801gjms2a7szit/BugTrackerArchitecture.jpg?rlkey=qez27hzwilqsfzp34z0r4wout&dl=0)
+![BugTrackerArchitecture](https://github.com/HoratiuCrisan/NodeJS-Bug-Tracker/assets/92850549/cb21580e-9436-4b12-8187-e9006c7eb839)
+
