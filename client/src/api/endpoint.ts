@@ -1,1 +1,5 @@
-export const END_POINT = "http://localhost:5000"
+export const TICKETS_END_POINT = "http://localhost:8000/api/tickets"
+export const USERS_END_POINT = "http://localhost:8002/api/users"
+export const PROJECT_END_POINT = "http://localhost:8001/projects"
+export const CHAT_END_POINT = "http://localhost:8003/api/chat"
+export const NOTIFICATIONS_END_POINT = "http://localhost:8004/api/notifications"

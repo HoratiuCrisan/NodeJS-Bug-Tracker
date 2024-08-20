@@ -5,24 +5,14 @@ import {
     FaLock,
 } from "react-icons/fa";
 import { ErrorMessageCard } from '../ErrorMessageCard'
+import { RegisterFormData, UserFormErrors } from '../../utils/interfaces/User'
 
 interface RegistrationFormProps  {
-    formData: FormData
-    errors: Errors
+    formData: RegisterFormData
+    errors: UserFormErrors
     onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
     onSubmit: (e: React.FormEvent) => void
     registrationError: null | string
-}
-
-interface FormData {
-    username: string
-    email: string
-    password: string
-}
-
-interface Errors {
-    username: string
-    password: string
 }
 
 /**

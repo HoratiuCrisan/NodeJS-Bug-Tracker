@@ -3,11 +3,7 @@ import { LoginForm } from './LoginForm'
 import { auth } from '../../config/firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import {useNavigate} from 'react-router-dom'
-
-interface FormData {
-    email: string
-    password: string
-}
+import {FormData} from '../../utils/interfaces/User'
 
 /**
  * Responsible for sending login information to db
@@ -33,17 +29,13 @@ export const LoginContainer: React.FC = () => {
         e.preventDefault()
         setFormError(null)
 
-        console.log(formError)
-
         try {
             const verifyEmailLogin = await signInWithEmailAndPassword(auth, formData.email, formData.password)
-
             if (verifyEmailLogin) {
-                console.log("aici")
+                console.log(await auth.currentUser?.getIdToken())
                 navigate("/")
             }
             
-            //console.log(auth.onAuthStateChanged((userCred) => console.log(userCred)))
         } catch (error) {
             console.error("Failed to login with email and password: " + error)
             setFormError("Invalid credentials!")

@@ -1,5 +1,6 @@
 import axios from "axios"
-import { END_POINT } from "./endpoint"
+import { TICKETS_END_POINT } from "./endpoint"
+import { Ticket } from "../utils/interfaces/Ticket"
 
 interface CreateTicketProps {
     formData: TicketFormData
@@ -23,7 +24,7 @@ interface TicketFormData {
 
 const createTicket = async ({formData, author, authorPicture} : CreateTicketProps) => {
     try {
-        const result = await axios.post(`${END_POINT}/api/create-ticket`, {
+        const result = await axios.post(`${TICKETS_END_POINT}/`, {
             formData, 
             author,
             authorPicture

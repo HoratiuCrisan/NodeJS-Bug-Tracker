@@ -1,18 +1,7 @@
 import React from 'react'
 import { FaEnvelope, FaLock } from 'react-icons/fa'
 import { ErrorMessageCard } from '../ErrorMessageCard'
-
-interface LoginFormProps {
-    formData: FormData
-    formError: string | null
-    onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-    onSubmit: (e: React.FormEvent) => void
-}
-
-interface FormData {
-    email: string
-    password: string
-}
+import {LoginFormProps} from '../../utils/interfaces/User'
 
 
 /**

@@ -2,39 +2,8 @@ import React, { useState } from 'react'
 import Select from 'react-select'
 import { DatePicker } from '../DatePicker'
 import { ErrorMessageCard } from '../../authentication/ErrorMessageCard'
-
-interface TicketFormData {
-    title: string
-    description: string
-    priority: {
-        value: string
-        label: string
-    }
-    type: {
-        value: string
-        label: string
-    }
-    deadline: string
-}
-
-interface TicketOptions {
-    value: string
-    label: string
-}
-
-interface TicketFormProps {
-    formData: TicketFormData
-    formError: string | null
-    onSubmit: (e: React.FormEvent) => void
-    onInputChange: (
-        value : React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | 
-        string | 
-        undefined,
-        type: string
-    ) => void
-    priority: TicketOptions[]
-    type: TicketOptions[]
-}
+import { TicketFormProps} from '../../utils/interfaces/Ticket'
+import { selectStyles, customStyles } from '../../utils/Select-Styles'
 
 export const TicketForm: React.FC<TicketFormProps> = ({formData, formError, onSubmit, onInputChange, priority, type}) => {
     return (
@@ -47,8 +16,8 @@ export const TicketForm: React.FC<TicketFormProps> = ({formData, formError, onSu
                 Create Ticket 
                 </h1>
                 <label 
-                        htmlFor="ticket-title"
-                        className="text-lg font-mono font-semibold"
+                    htmlFor="ticket-title"
+                    className="text-lg font-mono font-semibold"
                 >
                     Title
                     <input 
@@ -91,6 +60,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({formData, formError, onSu
                             name='ticket-priority'
                             id="ticket-type"
                             options={priority}
+                            styles={{...selectStyles("#34d399", "#000"), ...customStyles}}
                             placeholder={"Select priority..."}
                             required
                             value={formData.priority}
@@ -110,6 +80,7 @@ export const TicketForm: React.FC<TicketFormProps> = ({formData, formError, onSu
                             name="ticket-type"
                             id="ticket-type"
                             options={type}
+                            styles={{...selectStyles("#34d399", "#000"), ...customStyles}}
                             placeholder={"Select type..."}
                             value={formData.type}
                             onChange={(e) => onInputChange(e?.label, 'type')}

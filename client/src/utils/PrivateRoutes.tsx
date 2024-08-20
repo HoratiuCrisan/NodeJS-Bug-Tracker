@@ -1,6 +1,7 @@
-import React, {useEffect} from 'react'
+import React from 'react'
 import {Outlet, Navigate} from 'react-router'
 import { useAuth } from '../config/AuthContext'
+import { getAuth } from 'firebase/auth'
 
 
 export const PrivateRoutes = () => {

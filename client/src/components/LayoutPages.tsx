@@ -3,32 +3,34 @@ import { Sidebar } from './Sidebar'
 import { Navbar } from './Navbar'
 import { Outlet } from 'react-router-dom'
 import DefaultProfileImage from '../Images/default-user-photo.svg'
-import { useAuth } from '../config/AuthContext'
+import { getAuth } from 'firebase/auth'
+import { UserProvider } from '../context/UserProvider'
 
 export const LayoutPages = () => {
-  const {currentUser} = useAuth()
+  const auth = getAuth()
   const [username, setUsername] = useState<string | null>(null)
   const [profileImage, setProfileImage] = useState<string>(DefaultProfileImage)
 
   useEffect(() => {
-    if (currentUser?.displayName) {
-      setUsername(currentUser.displayName)
+    if (auth.currentUser && auth.currentUser.photoURL) {
+      setUsername(auth.currentUser.displayName);
+      setProfileImage(auth.currentUser.photoURL);
     }
-
-    if (currentUser?.photoURL) {
-      setProfileImage(currentUser.photoURL)
-    }
-  }, [])
+  }, [auth.currentUser])
 
   return (
-    <div className='block'>
-      <Navbar username={username} profileImage={profileImage}/>
-      <div className='flex pt-16'>
-        <Sidebar />
-        <div className='pl-4 lg:pl-72 pt-4 w-full '>
-          <Outlet />
+    <UserProvider>
+      <div className='block'>
+        <Navbar username={username} profileImage={profileImage}/>
+        <div className='flex pt-16'>
+          <div className='lg:mr-52'>
+          <Sidebar />
+          </div>
+          <div className='w-full '>
+            <Outlet />
+          </div>
         </div>
       </div>
-    </div>
+    </UserProvider>
   )
 }

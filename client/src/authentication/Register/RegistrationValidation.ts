@@ -1,5 +1,4 @@
-
-const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,11}$/
+const USER_REGEX = /^[a-zA-Z][a-zA-Z0-9-_]{3,24}$/
 const PWD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%]).{6,24}$/
 
 const usernameValidation = (username: string) : boolean => {
@@ -9,6 +8,7 @@ const usernameValidation = (username: string) : boolean => {
 
 
 const passwordValidation = (password: string) : boolean => {
+    // Password validation logic
     return PWD_REGEX.test(password)   
 }
 

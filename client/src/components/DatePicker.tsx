@@ -1,14 +1,5 @@
 import React from 'react'
-
-interface DatePickerProps {
-    deadline: string
-    onInputChange: (value : React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | 
-    string | 
-    undefined,
-    type: string
-) => void
-    style: string
-}
+import {DatePickerProps} from '../utils/interfaces/Date'
 
 const currentDate = new Date().toISOString().split('T')[0]
 

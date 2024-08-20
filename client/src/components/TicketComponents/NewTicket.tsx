@@ -1,6 +1,6 @@
 import React from 'react'
 import {FaRegEnvelope} from 'react-icons/fa'
-import { TicketContainer } from './TicketContainer'
+import { TicketContainer } from './TicketFormContainer'
 
 export const NewTicket = () => {
   return (

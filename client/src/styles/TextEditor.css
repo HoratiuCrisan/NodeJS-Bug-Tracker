@@ -1,0 +1,8 @@
+.text-editor-container {
+    height: 150px; 
+    overflow: auto;
+}
+
+.quill {
+    height: 100%;
+}

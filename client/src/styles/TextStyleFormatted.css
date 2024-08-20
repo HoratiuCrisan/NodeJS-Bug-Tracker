@@ -1,0 +1,25 @@
+/* styles.css */
+
+/* Style for bullets */
+ul {
+    list-style-type: disc; /* Use disc, circle, or square for different bullet styles */
+  }
+  
+  /* Style for numbering */
+  ol {
+    list-style-type: decimal; /* Use decimal, lower-alpha, upper-alpha, lower-roman, or upper-roman for different numbering styles */
+  }
+  
+  /* Style for quotes */
+  blockquote {
+    quotes: "\201C""\201D""\2018""\2019"; /* Specify the quotes you want to use */
+  }
+  
+  blockquote:before {
+    content: open-quote;
+  }
+  
+  blockquote:after {
+    content: close-quote;
+  }
+  

@@ -1,6 +1,9 @@
 import React from 'react'
 import { FaRegEnvelope } from "react-icons/fa6"
 import { FaUsers } from "react-icons/fa"
+import { IoChatbox } from "react-icons/io5";
+import { IoMdNotifications } from "react-icons/io";
+import { FaUsersRectangle } from "react-icons/fa6";
 import { useNavigate } from 'react-router-dom'
 
 const sidebarElements = [
@@ -15,13 +18,37 @@ const sidebarElements = [
         title: 'My Projects',
         href: "/projects",
         icon: <FaUsers />
+    },
+    {
+        id: 2,
+        title: 'My Messages',
+        href: "/messages",
+        icon: <IoChatbox />
+    },
+    {
+        id: 3,
+        title: 'My Notifications',
+        href: "/notifications",
+        icon: <IoMdNotifications />
+    },
+    {
+        id: 4,
+        title: 'Users',
+        href: "/users",
+        icon: <FaUsersRectangle />
+    },
+    {
+        id: 5,
+        title: "Admin",
+        href: "/admin",
+        icon: <FaUsersRectangle />
     }
 ]
 
 export const Sidebar = () => {
     const navigate = useNavigate()
     return (
-        <aside className='fixed hidden lg:block lg:w-1/6 2xl:w-56 h-screen bg-gray-100'>
+        <aside className='fixed hidden lg:block lg:w-1/6 2xl:w-56 h-screen bg-gray-100 z-20'>
             {sidebarElements.map((elem) => (
                 <div 
                     key={elem.id}
