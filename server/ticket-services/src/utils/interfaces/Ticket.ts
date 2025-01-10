@@ -1,4 +1,4 @@
-export interface Ticket {
+export type Ticket = {
     Author: string
     AuthorPicture: string
     Deadline: string
@@ -10,15 +10,21 @@ export interface Ticket {
     Type: string
     Description: string
     CreatedAt: string
+    ClosedAt: string | null
     Response: string
     Files: {
         File: File,
         FileName: string
-    }[]
+    }[],
+    Notified: boolean
 }
 
-export interface TicketObject {
+export type TicketObject = {
     id: string
     data: Ticket
 }
 
+export type LockTicketData = {
+    lockedBy: string,
+    lockedAt: Date,
+};

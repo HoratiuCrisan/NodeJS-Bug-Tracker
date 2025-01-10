@@ -12,6 +12,6 @@
       "allowSyntheticDefaultImports": true,
       "outDir": "./dist",
   },
-  "include": ["src/**/*", "config/firebase.ts"],
+  "include": ["src/**/*", "src/config/firebase.ts"],
   "exclude": ["node_modules"]
 }

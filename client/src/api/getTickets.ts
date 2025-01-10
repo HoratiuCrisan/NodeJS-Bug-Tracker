@@ -34,7 +34,7 @@ const getTicketsByUsername = async(username: string) => {
 
     try {
         console.log("username to fetch tickets: " + username);
-        const response = await axios.get(`${TICKETS_END_POINT}/${username}`);
+        const response = await axios.get(`${TICKETS_END_POINT}/${username}?limit=${10}&orderBy=Title&orderDirection=asc`);
 
         if (!response) {
             throw new Error("Error fetching tickets!");

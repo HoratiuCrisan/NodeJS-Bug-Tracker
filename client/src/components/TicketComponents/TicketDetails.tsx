@@ -61,7 +61,8 @@ export const TicketDetails = () => {
         const response = await getTicketByUsernameAndId(auth.currentUser.displayName ,id);
         
         if (response) {
-            setTicket(response.data);
+            console.log("TICKET: ", response.data)
+            setTicket(response.data.data);
             if (response.data.Response)
                 setTicketResponse(response.data.Response);
             console.log(response.data);

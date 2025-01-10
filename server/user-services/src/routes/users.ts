@@ -48,9 +48,12 @@ router.get('/', async (req: Request, res: Response) => {
     try {
         console.log("Get all users called");
         const usersSnapshot = await db.collection('Users').get();
+
         const users = usersSnapshot.docs.map((doc: admin.firestore.DocumentSnapshot) => ({
             id: doc.id, ...doc.data()
         }));
+
+        
 
         if (!users) {
             //logger.error('No users were found in the database');

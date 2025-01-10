@@ -1,8 +1,13 @@
-import admin from "../config/firebase-config"
-import { Request, Response, NextFunction } from 'express';
-import User from "#/utils/interfaces/User";
+import { Response, NextFunction } from 'express';
+import {User} from "#/utils/interfaces/User";
 import CustomRequest from "../utils/interfaces/Error";
 
+/**
+ * 
+ * @param {CustomRequest} req - The incoming request object, extended with custom properties.
+ * @param {Response} res - The outgoing response object (not used in this function).
+ * @param {NextFunction} next - Callback to pass control to the next middleware.
+ */
 const verifyToken = async (req: CustomRequest, res: Response, next: NextFunction) => {
     /* Get the token from the headers */
     const idToken = req.headers.authorization?.split(`Bearer `)[1];

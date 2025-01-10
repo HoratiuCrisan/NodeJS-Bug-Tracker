@@ -73,6 +73,7 @@ const useAxiosInterceptors = () => {
                 try {
                     /* Call the function above to get the current user token */
                     const token = await getIdToken();
+                    console.log(token); 
                     
                     /* Add the token to the axios to use for each request */
                     config.headers.Authorization = `Bearer ${token}`;

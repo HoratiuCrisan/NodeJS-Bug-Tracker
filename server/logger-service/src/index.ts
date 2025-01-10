@@ -1,11 +1,10 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
-import admin from '../config/firebase';
-import logger from './logger';
+import { RabbitMqConsumer } from './rabbitMqConsumer';
+import logsRouter from './routes/loggs'
 
-const db = admin.firestore();
 const app = express();
-const port = 8005;
+const PORT = 8005;
 
 app.use(express.json());
 
@@ -14,28 +13,11 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
-app.post("api/logs", (req: Request, res: Response) => {
-    const { microservice, message } = req.body;
+app.use("/api/loggs/", logsRouter);
 
-    if (!microservice || !message) {
-        return res.status(400).send({error: 'Microservice and message are required'});
-    }
+const rabbitMq = new RabbitMqConsumer();
+rabbitMq.listenToLogs().catch((err) => console.error(err));
 
-    logger.info(`[${microservice}] ${message}`);
-    res.status(200).send('Log entry created');
-});
-
-app.get("/api/logs", async (req: Request, res: Response) => {
-    try {
-        const snapshot = await db.collection('Logs').get();
-        const logs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data()}));
-        res.status(200).send({logs});
-    } catch (error) {
-        console.error("Failed to fetch logs");
-        res.status(500).send({error: "Error at fetching logs."});
-    }
-});
-
-app.listen(port, () => {
-    //logger.info(`Logger is listening on port ${port}`);
+app.listen(PORT, () => {
+    console.log(`Logging service running on port: ${PORT}`);
 });

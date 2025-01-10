@@ -14,13 +14,14 @@
   "dependencies": {
     "@types/morgan": "^1.9.9",
     "@types/winston": "^2.4.4",
+    "amqplib": "^0.10.5",
     "cors": "^2.8.5",
     "firebase-admin": "^12.2.0",
     "morgan": "^1.10.0",
-    "winston": "^3.13.0",
     "winston-transport": "^4.7.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.8",
