@@ -3,16 +3,16 @@
 **/.env
 
 # Ignore all the Firebase service account files
-**/config/serviceAccount.json
+server/**/config/serviceAccount.json
 
 # Ignore all the node modeules directories
-**/node_modules/
+server/**/node_modules/
 
 # Ignore all the dist directories
-**/dist/
+server/**/dist/
 
 # Ignore all the bin directories
-**/bin/
+server/**/bin/
 
 # Ignore system files
 .DS_Store
