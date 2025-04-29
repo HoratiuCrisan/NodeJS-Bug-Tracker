@@ -4,7 +4,7 @@ import { customStyles, selectStyles } from '../../utils/Select-Styles';
 import { useAuth } from '../../config/AuthContext'
 import { getUsers } from '../../api/users';
 import {createProject} from '../../api/projects';
-import {User, Project} from '../../utils/interfaces/Project'
+import {User, Project} from '../../utils/types/Project'
 import {ErrorDialog} from '../ErrorDialog'
 import { useNavigate } from 'react-router-dom';
 

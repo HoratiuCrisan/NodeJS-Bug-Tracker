@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useContext} from 'react'
 import { getUserNotifications } from '../../api/notifications'
 import { getAuth } from 'firebase/auth'
-import { Notification, NotificationObject } from '../../utils/interfaces/Notification'
+import { Notification, NotificationObject } from '../../utils/types/Notification'
 import { UserContext } from '../../context/UserProvider';
 import { useNavigate } from 'react-router-dom';
 

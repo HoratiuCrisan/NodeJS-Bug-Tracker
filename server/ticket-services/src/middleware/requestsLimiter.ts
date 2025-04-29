@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AppError } from "@bug-tracker/usermiddleware";
 
 /* Store the request metadata */
 /* The key is a string formed of 
@@ -18,7 +19,7 @@ const accessCounts = new Map<string, { count: number, timestamp: number }>();
  * @returns {Response | void} A server error message if the limit was exceeded
  *  and nothing otherwise 
  */
-export function limitAccess(req: Request, res: Response, next: NextFunction) : Response | void {
+export function limitAccess(req: Request, res: Response, next: NextFunction) : void {
     /* Get the IP address */
     const userIp = req.ip; 
 
@@ -57,7 +58,7 @@ export function limitAccess(req: Request, res: Response, next: NextFunction) : R
             /* If the user performed more than 20 requests 
                 in the past minute time out the user */ 
             if (accessData.count >= 20) {
-                return res.status(429).json({ error: 'Too many requests. Try again later.' });
+                throw new AppError(`AccessDenied`, 400, `User timed out. Too many requests sent. Try again later`);
             } else {
                 /* Otherwise increment the counter for the requests */
                 accessCounts.set(key, {

@@ -1,6 +1,6 @@
 import React, {useState, useEffect, ReactNode} from 'react';
 import convertTimestampToDate from '../../utils/TimestampToDate';
-import { User } from '../../utils/interfaces/User';
+import { User } from '../../utils/types/User';
 import DefaultImage from '../../Images/ProfileImage.jpg';
 import Select from 'react-select'
 

@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useRef, useContext} from 'react'
-import { getTicketsByUsername, getAllTickets } from '../../api/getTickets'
-import { TicketObject } from '../../utils/interfaces/Ticket'
+import { getTicketsByUsername, getAllTickets } from '../../api/tickets'
+import { TicketCard } from '../../utils/types/Ticket'
 import { selectTickets } from './SelectTickets'
 import Select, { SingleValue } from 'react-select'
 import { selectStyles, customStyles } from '../../utils/Select-Styles'
@@ -38,11 +38,11 @@ export const DisplayedTicket = () => {
   const {userRole, loading} = useContext(UserContext);
   const auth = getAuth();
   const isInitialMout = useRef(true)
-  const [tickets, setTickets] = useState<TicketObject[]>([])
-  const [displayedTickets, setDisplayedTickets] = useState<TicketObject[]>([])
+  const [tickets, setTickets] = useState<TicketCard[]>([])
+  const [displayedTickets, setDisplayedTickets] = useState<TicketCard[]>([])
   const [displayOption, setDisplayOption] = useState<{label: string, value: string}>(displayOptions[0])
   const [displayOrder, setDisplayOrder] = useState<string>('asc')
-  const [orderValue, setOrderValue] = useState<string>('Title')
+  const [orderValue, setOrderValue] = useState<string>('title')
   const [ticketsNumberDisplayed, setTicketsNumberDisplayed] = useState<number>(5)
 
   useEffect(() => {
@@ -59,14 +59,14 @@ export const DisplayedTicket = () => {
         throw new Error("Error! Unautorized user! Please login!");
       }
 
-      let response;
+      let response: TicketCard[] = [];
 
       if (userRole?.toLowerCase() === "admin") {
-        response = await getAllTickets();
+        response = await getAllTickets(10, orderValue, displayOrder, undefined, undefined, undefined);
         console.log("Fetched as admin");
       } else {
         console.log("Fetched as user");
-        response = await getTicketsByUsername(auth.currentUser.displayName);
+        response = await getTicketsByUsername(auth.currentUser.uid, 10, orderValue, displayOrder, undefined, undefined, undefined);
       }
 
       
@@ -88,7 +88,7 @@ export const DisplayedTicket = () => {
     // TODO: DISPLAY ERROR MESSAGE CARD FOR UNDEFINED
   }
 
-  const handleDisplayedTicketsChange = (tickets: TicketObject[], text: string) => {
+  const handleDisplayedTicketsChange = (tickets: TicketCard[], text: string) => {
     if (text === '') {
        handleOptionChange(displayOption)
     } else {
@@ -96,7 +96,7 @@ export const DisplayedTicket = () => {
     }
   }
 
-  const handleOrderTicketsChange = (tickets: TicketObject[]) => {
+  const handleOrderTicketsChange = (tickets: TicketCard[]) => {
     setDisplayedTickets(tickets)
   }
 

@@ -1,15 +1,13 @@
-require('dotenv').config();
 import express from "express";
 import cors from 'cors';
 import ticketRouter from "./routes/tickets";
 import cron from "node-cron";
-import { createServer } from "http";
-import { TicketController } from "./controllers/ticketController";
-import {limitAccess} from '#/middleware/requestsLimiter'
+import { TicketService } from "./services/ticketService";
+import { limitAccess } from "./middleware/requestsLimiter";
+import { errorHandler } from "@bug-tracker/usermiddleware";
  
 const app = express();
 const PORT = 8000;
-const server = createServer(app);
 
 app.use(cors({
     origin: 'http://localhost:3000',
@@ -18,14 +16,16 @@ app.use(cors({
 
 app.use(express.json())
 
-app.use(limitAccess)
-app.use("/api/tickets/", ticketRouter);
+app.use(limitAccess);
+app.use(errorHandler);
+app.use("/api/tickets", ticketRouter);
 
+const ticketService = new TicketService();
 
-cron.schedule('30 * * * *', async () => {
-    /* Run the scheduler every 30 minutes and check for upcoming ticket deadlines */
+cron.schedule('1 * * * *', async () => {
+    /* Run the schedule at minute 1 at every hour every day */
     console.log("Running scheduled task to check for upcoming ticket deadlines...");
-    TicketController.checkUpcomingTicketDeadline();
+    await ticketService.checkUpcomingTicketDeadline();
 });
 
 app.listen(PORT, () => {

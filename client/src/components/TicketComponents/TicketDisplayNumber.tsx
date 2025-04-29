@@ -1,6 +1,6 @@
 import React from 'react'
 import Select from 'react-select'
-import { Ticket, TicketViewNumberProps } from '../../utils/interfaces/Ticket'
+import { Ticket, TicketViewNumberProps } from '../../utils/types/Ticket'
 
 
 export const TicketDisplayNumber: React.FC<TicketViewNumberProps> = ({items, options, styles, viewStyle, setItemsNumbers}) => {

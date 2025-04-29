@@ -1,6 +1,6 @@
 import { NOTIFICATIONS_END_POINT } from "./endpoint";
 import axios from "axios";
-import { Notification } from "../utils/interfaces/Notification";
+import { Notification } from "../utils/types/Notification";
 
 const getUserNotifications = async (userId: string) => {
     if (!userId) {

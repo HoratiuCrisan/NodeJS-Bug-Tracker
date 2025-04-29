@@ -1,16 +1,11 @@
 import React, {useState, useEffect} from 'react'
 import { getAuth } from 'firebase/auth'
-import { getAllTickets } from '../api/getTickets';
-import { Ticket } from '../utils/interfaces/Ticket';
-
-interface TicketObject {
-    id: string;
-    data: Ticket;
-}
+import { getAllTickets } from '../api/tickets';
+import { Ticket, TicketCard } from '../utils/types/Ticket';
 
 export const Admin = () => {
     const auth = getAuth();
-    const [tickets, setTickets] = useState<TicketObject[]>([]);
+    const [tickets, setTickets] = useState<TicketCard[]>([]);
 
     useEffect(() => {
         if (auth.currentUser) {
@@ -19,7 +14,7 @@ export const Admin = () => {
     }, [auth]);
 
     const fetchTickets =  async () => {
-        const response: TicketObject[] = await getAllTickets();
+        const response: TicketCard[] = await getAllTickets(10, "title", "asc", undefined, undefined, undefined);
 
         if (response) {
             console.log("All tickets ", response);
@@ -32,7 +27,7 @@ export const Admin = () => {
             All tickets
             {tickets.map((ticket, id) => (
                 <h1 className='text-black' key={id}>
-                    {ticket.data.Title}
+                    {ticket.title}
                 </h1>
             ))}
         </div>

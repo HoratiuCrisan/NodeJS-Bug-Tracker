@@ -1,5 +1,5 @@
 import React from 'react'
-import {DatePickerProps} from '../utils/interfaces/Date'
+import {DatePickerProps} from '../utils/types/Date'
 
 const currentDate = new Date().toISOString().split('T')[0]
 

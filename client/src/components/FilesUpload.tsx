@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IoIosClose } from 'react-icons/io';
-import { Ticket } from '../utils/interfaces/Ticket';
+import { Ticket } from '../utils/types/Ticket';
 import { AxiosResponse } from 'axios';
 import { ErrorDialog } from './ErrorDialog';
 
@@ -15,7 +15,7 @@ interface Props {
 
 export const FilesUpload: React.FC<Props> = ({ ticketId, method, data, type, author, isFetched }) => {
   const [files, setFiles] = useState<FileList | null>(null);
-  const [existingFiles, setExistingFiles] = useState<{ File: File; FileName: string }[]>(data ? data.Files : []);
+  const [existingFiles, setExistingFiles] = useState<{ file: File; fileName: string }[]>(data ? data.files : []);
   const [error, setError] = useState<string | null>(null);
 
   const parseFileNameLength = (fileName: string) => {
@@ -25,7 +25,7 @@ export const FilesUpload: React.FC<Props> = ({ ticketId, method, data, type, aut
 
   const handleFileExists = (file: File): boolean => {
     for (let i = 0; i < existingFiles.length; i++) {
-      if (existingFiles[i].FileName === file.name) return true;
+      if (existingFiles[i].fileName === file.name) return true;
     }
     return false;
   };
@@ -99,24 +99,25 @@ export const FilesUpload: React.FC<Props> = ({ ticketId, method, data, type, aut
     const filesArray = [...existingFiles];
 
     for (let i = 0; i < files.length; i++) {
-      filesArray.push({ File: files[i], FileName: files[i].name });
+      filesArray.push({ file: files[i], fileName: files[i].name });
     }
 
     if (type === 'ticket') {
       const updatedTicket: Ticket = {
-        Title: data.Title,
-        Author: data.Author,
-        Description: data.Description,
-        Deadline: data.Deadline,
-        Handler: data.Handler,
-        HandlerId: data.HandlerId,
-        AuthorPicture: data.AuthorPicture,
-        CreatedAt: data.CreatedAt,
-        Status: data.Status,
-        Priority: data.Priority,
-        Type: data.Type,
-        Response: data.Response,
-        Files: filesArray,
+        id: data.id,
+        title: data.title,
+        authorId: data.authorId,
+        description: data.description,
+        deadline: data.deadline,
+        handlerId: data.handlerId,
+        createdAt: data.createdAt,
+        closedAt: data.closedAt,
+        status: data.status,
+        priority: data.priority,
+        type: data.type,
+        response: data.response,
+        files: filesArray,
+        notified: data.notified,
       };
 
       const response = await method(ticketId, updatedTicket, author);
@@ -141,7 +142,7 @@ export const FilesUpload: React.FC<Props> = ({ ticketId, method, data, type, aut
       <h1 className='text-md lg:text-lg font-semibold my-4'>Files: </h1>
       {existingFiles.map((ef, index) => (
         <div key={index} className='flex justify-between border-2 border-green-700 text-green-700 rounded-md p-2 m-4 w-5/6'>
-          {parseFileNameLength(ef.FileName)}
+          {parseFileNameLength(ef.fileName)}
           <IoIosClose className='text-end text-xl cursor-pointer my-1' />
         </div>
       ))}

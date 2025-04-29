@@ -1,5 +1,4 @@
 const {getFirestore} = require('firebase-admin/firestore')
-import firestore from 'firebase-admin/auth'
 import * as admin from 'firebase-admin';
 import * as serviceAccount from "./serviceAccount.json"
 

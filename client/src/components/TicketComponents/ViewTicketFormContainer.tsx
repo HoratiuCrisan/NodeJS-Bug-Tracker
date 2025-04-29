@@ -1,5 +1,5 @@
 import React from 'react'
-import {TicketProps} from '../../utils/interfaces/Ticket'
+import {TicketProps} from '../../utils/types/Ticket'
 
 
 

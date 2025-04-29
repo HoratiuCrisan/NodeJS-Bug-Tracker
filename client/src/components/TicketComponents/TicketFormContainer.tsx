@@ -4,7 +4,7 @@ import { createTicket } from '../../api/createTicket';
 import { useAuth } from '../../config/AuthContext';
 import { getAuth } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { TicketFormData } from '../../utils/interfaces/Ticket';
+import { TicketFormData } from '../../utils/types/Ticket';
 
 const priorityOptions = [
   {

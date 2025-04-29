@@ -1,9 +1,9 @@
 import React from 'react'
-import { TicketObject } from '../../utils/interfaces/Ticket'
+import { Ticket, TicketCard as TC } from '../../utils/types/Ticket'
 import { useNavigate } from 'react-router-dom'
 
 interface TicketProps {
-    ticket: TicketObject
+    ticket: TC
 }
 
 const parsePriorityColor = (text: string) => {
@@ -28,17 +28,18 @@ export const TicketCard: React.FC<TicketProps> = ({ticket}) => {
       onClick={() => navigate(`/tickets/${ticket.id}`)} 
       className='w-1/5 bg-stone-100 font-semibold rounded-md shadow-xl hover:border-2 hover:border-gray-400 cursor-pointer mr-6 my-4 p-4'>
         <h1 className='my-2'>
-          {ticket.data.Title}
+          {ticket.title}
         </h1>
         <span className='my-2'>
-          {parsePriorityColor(ticket.data.Priority)}
+          {parsePriorityColor(ticket.priority)}
         </span>
         <h1 className='my-2 text-gray-600'>
-          {ticket.data.Deadline}
+          {ticket.deadline}
         </h1>
         <div className='flex items-center'>
-          <h1 className='my-2'>{ticket.data.Status.split('-').join(' ')}</h1>
-          <img src={ticket.data.AuthorPicture} alt="author" className='rounded-full w-8 ml-auto'/>
+          <h1 className='my-2'>{ticket.status.split('-').join(' ')}</h1>
+          {/* TODO: REPLACE WITH THE PHOTO FROM THE USER NOT THE ID */}
+          <img src={ticket.authorPhoto} alt="author" className='rounded-full w-8 ml-auto'/> 
         </div>
     </div>
   )

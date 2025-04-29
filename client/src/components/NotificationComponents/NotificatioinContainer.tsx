@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react'
-import { Notification } from '../../utils/interfaces/Notification'
+import { Notification } from '../../utils/types/Notification'
 import { getAuth } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
 import { IoTrashBin } from "react-icons/io5";

@@ -3,7 +3,7 @@ import { LoginForm } from './LoginForm'
 import { auth } from '../../config/firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import {useNavigate} from 'react-router-dom'
-import {FormData} from '../../utils/interfaces/User'
+import {FormData} from '../../utils/types/User'
 
 /**
  * Responsible for sending login information to db

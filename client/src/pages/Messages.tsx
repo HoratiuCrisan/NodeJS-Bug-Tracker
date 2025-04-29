@@ -3,7 +3,7 @@ import { getAuth } from 'firebase/auth'
 import { Chats } from '../components/MessageCompnents/Chats';
 import { MessageSidebar } from '../components/MessageCompnents/MessageSidebar';
 import axios from 'axios';
-import { User } from '../utils/interfaces/User';
+import { User } from '../utils/types/User';
 
 export const Messages = () => {
     const [chat, setChat] = useState<User | null>(null);

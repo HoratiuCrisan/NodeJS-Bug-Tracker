@@ -11,7 +11,11 @@
       "resolveJsonModule": true,
       "allowSyntheticDefaultImports": true,
       "outDir": "./dist",
+      "baseUrl": "./",
+      "paths": {
+        "logging-lib": ["../logging-lib"],
+      },
   },
-  "include": ["src/**/*", "src/config/firebase.ts"],
+  "include": ["src/**/*", "config/firebase.ts"],
   "exclude": ["node_modules"]
 }

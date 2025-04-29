@@ -1,0 +1,35 @@
+{
+  "name": "versioning-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.13.17",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@bug-tracker/usermiddleware": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/usermiddleware",
+    "@types/amqplib": "^0.10.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "amqplib": "^0.10.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.2.0",
+    "uuid": "^11.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "@bug-tracker/usermiddleware": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/usermiddleware"
+    }
+  }
+}

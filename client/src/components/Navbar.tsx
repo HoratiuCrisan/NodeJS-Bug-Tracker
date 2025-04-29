@@ -5,8 +5,8 @@ import { BsStack } from 'react-icons/bs';
 import { IoMdNotificationsOutline } from 'react-icons/io';
 import { NotificationDialog } from './NotificationComponents/NotificationDialog';
 import { UserContext } from '../context/UserProvider';
-import { Notification } from '../utils/interfaces/Notification';
-import { NavbarProps } from '../utils/interfaces/Navbar';
+import { Notification } from '../utils/types/Notification';
+import { NavbarProps } from '../utils/types/Navbar';
 
 export const Navbar: React.FC<NavbarProps> = ({ username, profileImage }) => {
     const { notifications } = useContext(UserContext);

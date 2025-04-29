@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
-import { getTicketByUsernameAndId } from '../../api/getTickets';
-import { Ticket } from '../../utils/interfaces/Ticket';
+import { getUserTicketById } from '../../api/tickets';
+import { Ticket, TicketObject } from '../../utils/types/Ticket';
 import { UpdateStatusDialog } from '../UpdateStatusDialog';
 import { DeleteDialog } from '../DeleteDialog';
 import { TextEditor } from '../TextEditor';
 import { FilesUpload } from '../FilesUpload';
-import { updateTicketById } from '../../api/getTickets';
+import { updateTicketById } from '../../api/tickets';
 import { getAuth } from 'firebase/auth';
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowDown } from "react-icons/io";
@@ -19,7 +19,7 @@ export const TicketDetails = () => {
     const auth = getAuth();
     const params = useParams()
     const isFetched = useRef<boolean>(false);
-    const [ticket, setTicket] = useState<Ticket>()
+    const [ticket, setTicket] = useState<TicketObject>()
     const [isLoading, setIsLoading] = useState<boolean>(true)
     const [ticketResponse, setTicketResponse] = useState<string>('')
     const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState<boolean>(false)
@@ -28,10 +28,10 @@ export const TicketDetails = () => {
     const [isVersionOpen, setIsVersionOpen] = useState<boolean>(false)
 
     const ticketsMenu = [
-        {text: "Deadline", value: ticket?.Deadline, style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
-        {text: "Type", value: ticket?.Type, style: 'text-yellow-600 border-yellow-600 hover:bg-yellow-600 hover:text-white'},
-        {text: "Priority", value: ticket?.Priority, style: 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white'},
-        {text: "Status", value: ticket?.Status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'}
+        {text: "Deadline", value: new Date(Number(ticket?.ticket.deadline)).toLocaleString(), style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
+        {text: "Type", value: ticket?.ticket.type, style: 'text-yellow-600 border-yellow-600 hover:bg-yellow-600 hover:text-white'},
+        {text: "Priority", value: ticket?.ticket.priority, style: 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white'},
+        {text: "Status", value: ticket?.ticket.status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'}
     ]
 
     const statusUpdateMenu = [
@@ -54,18 +54,19 @@ export const TicketDetails = () => {
             return;
         }
 
-        if (!auth.currentUser?.displayName) {
+        console.log("PARAMS ID: ", id);
+
+        if (!auth.currentUser?.uid) {
             return;
         }
 
-        const response = await getTicketByUsernameAndId(auth.currentUser.displayName ,id);
+        const response = await getUserTicketById(auth.currentUser.uid , id);
         
         if (response) {
-            console.log("TICKET: ", response.data)
-            setTicket(response.data.data);
-            if (response.data.Response)
-                setTicketResponse(response.data.Response);
-            console.log(response.data);
+            console.log("TICKET: ", response)
+            setTicket(response);
+            if (response.ticket.response)
+                setTicketResponse(response.ticket.response);
             setIsLoading(false)
         }
 
@@ -110,19 +111,20 @@ export const TicketDetails = () => {
         }
 
         const formData: Ticket = {
-            Author: ticket.Author,
-            AuthorPicture: ticket.AuthorPicture,
-            Title: ticket.Title,
-            Description: ticket.Description,
-            Handler: ticket.Handler,
-            HandlerId: ticket.HandlerId,
-            Response: ticketResponse,
-            Status: ticket.Status,
-            Type: ticket.Type,
-            Priority: ticket.Priority,
-            Deadline: ticket.Deadline,
-            CreatedAt: ticket.CreatedAt,
-            Files: ticket.Files
+            id: ticket.ticket.id,
+            title: ticket.ticket.title,
+            authorId: ticket.ticket.authorId,
+            description: ticket.ticket.description,
+            deadline: ticket.ticket.deadline,
+            handlerId: ticket.ticket.handlerId,
+            createdAt: ticket.ticket.createdAt,
+            closedAt: ticket.ticket.closedAt,
+            status: ticket.ticket.status,
+            priority: ticket.ticket.priority,
+            type: ticket.ticket.type,
+            response: ticket.ticket.response,
+            files: ticket.ticket.files,
+            notified: ticket.ticket.notified,
         }
 
         const response = await updateTicketById(params.id, formData, auth.currentUser?.displayName);
@@ -142,23 +144,24 @@ export const TicketDetails = () => {
         <div className='block lg:flex w-full'>
             <div className='block w-full lg:w-2/3'>
                 <div className='w-full lg:w-5/6 bg-gray-50 rounded-md shadow-md p-2'>
-                    <h1 className='text-lg font-semibold'>{ticket?.Title}</h1>
+                    <h1 className='text-lg font-semibold'>{ticket?.ticket.title}</h1>
                     <p 
                         className='my-2 text-md font-sans'
-                        dangerouslySetInnerHTML={{ __html: ticket.Description }}
+                        dangerouslySetInnerHTML={{ __html: ticket.ticket.description }}
                     />
 
                     <div className='flex my-2'>
+                        {/* TODO: REPLACE WITH PICTURE */}
                         <img 
-                            src={ticket?.AuthorPicture} 
+                            src={ticket.author.photoUrl}  
                             alt="dafault" 
                             className='w-8 rounded-full mr-4'
                         />
-                        <h6 className='text-md font-semibold my-1'>{ticket?.Author}</h6>
+                        <h6 className='text-md font-semibold my-1'>{ticket.author.displayName}</h6>
                     </div>
 
                     <div className='flex'>    
-                        {(auth.currentUser.uid === ticket?.HandlerId || userRole === 'admin') &&
+                        {(auth.currentUser.uid === ticket?.ticket.handlerId || userRole === 'admin') &&
                             <button
                                 onClick={() => setIsStatusUpdateOpen(!isStatusUpdateOpen)} 
                                 className={
@@ -170,7 +173,7 @@ export const TicketDetails = () => {
                             </button>
                         }
 
-                        {(auth.currentUser.displayName === ticket?.Author || userRole === 'admin') &&
+                        {(auth.currentUser.displayName === ticket?.ticket.authorId || userRole === 'admin') &&
                             <button
                                 onClick={() => setIsEditDialogOpen(!isEditDialogOpen)}
                                 className={
@@ -238,7 +241,7 @@ export const TicketDetails = () => {
                     ticketId={params.id}
                     author={auth.currentUser.displayName}
                     method={updateTicketById}
-                    data={ticket}
+                    data={ticket.ticket}
                     type={"ticket"}
                     isFetched={isFetched}
                 />
@@ -248,12 +251,12 @@ export const TicketDetails = () => {
             {/* Dialog Overlay */}
             {isStatusUpdateOpen && (
                 <UpdateStatusDialog 
-                    status={ticket? ticket.Status : ''}
+                    status={ticket.ticket.status}
                     onClose={handleUpdateDialog}
                     type={"ticket"}
                     options={statusUpdateMenu}
                     id={params.id}
-                    ticket={ticket}
+                    ticket={ticket.ticket}
                     isFetched={isFetched}
                 />
             )}
@@ -262,7 +265,7 @@ export const TicketDetails = () => {
                 <EditTicketDialog 
                     onClose={handleEditDialog}
                     ticketId={params.id}
-                    ticketData={ticket}
+                    ticketData={ticket.ticket}
                     isFetched={isFetched}
                 />
             }

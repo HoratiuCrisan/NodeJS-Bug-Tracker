@@ -1,77 +1,97 @@
-import { Ticket, TicketObject } from "#/utils/interfaces/Ticket";
-import { executeWithHandling } from "#/utils/throwError";
-import admin from "#/config/firebase-config";
+import { Ticket } from "../types/Tickets";
+import { AppError, executeWithHandling } from "@bug-tracker/usermiddleware";
+import env from "dotenv";
+import admin from "../../config/firebase-config";
+
 const db = admin.firestore();
+const FieldPath = admin.firestore.FieldPath;
+env.config();
 
 export class TicketRepository {
     /* Ticket Repository is used to interact with the Firebase database,
     and perform CRUD operations on the tickets */
 
+    private _dbTicketsCollection: string;
+
+    constructor() {
+        if (!process.env.TICKETS_COLLECTION) {
+            throw new AppError(`InvalidEnvData`, 400, `Invalid env. data`);
+        }
+
+        this._dbTicketsCollection = process.env.TICKETS_COLLECTION;
+    }
+
     /**
      * 
-     * @param {Ticket} ticketData The ticket data received to add to the database 
-     * @returns {Promise<TicketObject>} The newly created ticket with it's ID
+     * @param {Ticket} ticket The ticket data to add to the database
+     * @returns {Promise<Ticket>} The newly created ticket
      */
-    async createTicket(ticketData: Ticket): Promise<TicketObject> {
+    async createTicket(ticket: Ticket): Promise<Ticket> {
         return await executeWithHandling(
             async () => {
-                /* Add the ticket to the Tickets collection in the firebase database */
-                const response = await db.collection("Tickets").add(ticketData);
+                /* Create a new ticket document */
+                const ticketRef = db.collection(this._dbTicketsCollection).doc(ticket.id);
                 
-                /* Get the data from firebase */
-                const ticketInfo = await response.get();
+                /* Add the data to the document */
+                await ticketRef.set(ticket);
 
-                const ticket: TicketObject = {
-                    id: ticketInfo.id,
-                    data: ticketInfo.data() as Ticket
-                }
-
-                return ticket;
+                /* Return the created ticket data */
+                return (await ticketRef.get()).data() as Ticket;
             },
-            `Failed to create the ticket with the title: ${ticketData.Title}`
+            `CreateTicketError`,
+            500,
+            `Failed to create ticket`
         );
     }
     
     /**
      * 
-     * @param {number} limit The number of items per page
-     * @param {string} orderBy The field to sort by
-     * @param {"asc" | "desc"} orderDirection The sorting direction 
-     * @returns {Promise<TicketObject[]>} A collection of filtered tickets
+     * @param {number} limit The number of tickets to retrieve 
+     * @param {string} orderBy The crieteria to order the tickets by 
+     * @param {string} orderDirection The direction of the order
+     * @param {string | undefined} status The status of the ticket 
+     * @param {string | undefined} priority The status of the ticket
+     * @param {string | undefined} startAfter The ID of the last retrieved ticket at the previous fetching request
+     * @returns {Promise<Ticket[]>} The retrieved tickets list
      */
     async getAllTickets(
         limit: number, 
-        orderBy: "Title" | "CreatedAt" | "Deadline" | "Type" | "Priority" | "Status",
-        orderDirection: "asc" | "desc", 
+        orderBy: string,
+        orderDirection: string, 
         status?: string,
         priority?: string,
         startAfter?: string,
-    ): Promise<TicketObject[]> {
-        /* Only admins have access to all the tickets */
+    ): Promise<Ticket[]> {
         return await executeWithHandling(async () => {            
             /* Get the tickets collection query */
             let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = 
-                db.collection("Tickets");
+                db.collection(this._dbTicketsCollection);
 
             /* If the api call contains a status, filter the Tickets collection
                 based on the ticket status that was sent */
             if (status) {
-                ticketsRef = ticketsRef.where("Status", "==", status);
+                ticketsRef = ticketsRef.where("status", "==", status);
             }
 
             /* If the api call contains a priority type, filter the Tickets collection
                 based on the ticket priority that was sent */
             if (priority) {
-                ticketsRef = ticketsRef.where("Priority", "==", priority);
+                ticketsRef = ticketsRef.where("priority", "==", priority);
             }
 
             /* Order the tickets colletion by the order criteria and the direction, 
                 received from the api call */
+
+            /* Check if the ordering direction is valid */
+            if (orderDirection !== "asc" && orderDirection !== "desc") {
+                throw new AppError(`InvalidDirectionOrder`, 400, `Invalid tickets order direction`);
+            }
+
             ticketsRef.orderBy(orderBy, orderDirection);
 
             if (startAfter) {
                 /* Check if the ticket with the sent ID exists */
-                const lastDocSnapshot = await db.collection("Tickets").doc(startAfter).get();
+                const lastDocSnapshot = await db.collection(this._dbTicketsCollection).doc(startAfter).get();
 
                 /* Mark the starting point from where the fetching will begin
                     for the collection of tickets */
@@ -85,291 +105,336 @@ export class TicketRepository {
             ticketsRef = ticketsRef.limit(limit);
 
             /* Return only the need ticket information to be displayed on the tickets page */
-            const ticketsData = await ticketsRef.select("Ttitle", "AuthorPicture", "Priority", "Status", "Deadline").get();
+            const ticketsData = await ticketsRef.select("id", "title", "authorId", "priority", "status", "deadline").get();
 
-            const tickets: TicketObject[] = [];
+            const tickets: Ticket[] = [];
 
-            /* Get the ID and the required data for each ticket fetched */
+            /* Add the ticket to the list */
             ticketsData.docs.map((doc) => {
-                tickets.push({
-                    id: doc.id,
-                    data: doc.data() as Ticket,
-                });
+                tickets.push(doc.data() as Ticket);
             });
 
 
             return tickets;
             },
-            `Failed to fetch the tickets collection `
+            `RetrieveTicketsError`,
+            500,
+            `Failed to retrieve tickets`
         );
     }
 
     /**
-     * 
-     * @param {string} username The filtering property for ticket collection
-     * @param {number} limit The number of items per page
-     * @param {string} orderBy The field to sort by
-     * @param {"asc" | "desc"} orderDirection The sorting direction 
-     * @returns {Promise<TicketObject[]>} A collection of filtered tickets
+     * Retrieves tickets where the user is either the author or handler, but not both.
+     *
+     * @param {string} userId The ID of the user to retrieve tickets for
+     * @param {number} limit The number of tickets to retrieve
+     * @param {string} orderBy The criteria to order tickets by
+     * @param {string} orderDirection The direction of the ordering ("asc" or "desc")
+     * @param {string | undefined} status Optional filter by ticket status
+     * @param {string | undefined} priority Optional filter by ticket priority
+     * @param {string | undefined} startAfter Optional ticket ID for pagination
+     * @returns {Promise<Ticket[]>} List of retrieved tickets
      */
     async getUserTickets(
-        username: string, 
-        limit: number, 
-        orderBy: "Title" | "CreatedAt" | "Deadline" | "Type" | "Priority" | "Status",
-        orderDirection: "asc" | "desc", 
+        userId: string,
+        limit: number,
+        orderBy: string,
+        orderDirection: "asc" | "desc",
         status?: string,
         priority?: string,
         startAfter?: string,
-    ): Promise<TicketObject[]> {
-        /* A user that is NOT an admin should only have access to the tickets:
-            ** That he is the author of 
-            ** That he is the handler
-        */
+    ): Promise<Ticket[]> {
+        return executeWithHandling(
+            async () => {
+                const buildQuery = (field: "authorId" | "handlerId") => {
+                    let q = db.collection(this._dbTicketsCollection)
+                        .where(field, "==", userId);
 
-        /* Get the Tickets Collection query */
-        let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> =
-            db.collection("Tickets");
+                    if (status) q = q.where("status", "==", status);
+                    if (priority) q = q.where("priority", "==", priority);
 
-        /* If the api call contains a status, filter the Tickets collection
-            based on the ticket status that was sent */
-        if (status) {
-            ticketsRef = ticketsRef.where("Status", "==", status);
-        }
+                    return q;
+                };
 
-        /* If the api call contains a priority type, filter the Tickets collection
-            based on the ticket priority that was sent */
-        if (priority) {
-            ticketsRef = ticketsRef.where("Priority", "==", priority);
-        }
+                // Fetch both sets
+                const [authorSnap, handlerSnap] = await Promise.all([
+                    buildQuery("authorId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
+                    buildQuery("handlerId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
+                ]);
 
-        /* Query all the tickets where the user is the author of the ticket,
-            and not the handler of it */ 
-        let queryAuthor = ticketsRef.where("Author", "==", username)
-                                    .where("Handler", "!=", username);
+                // Merge and filter out tickets where user is both author and handler
+                const combined: Ticket[] = [
+                    ...authorSnap.docs,
+                    ...handlerSnap.docs,
+                ]
+                .map(doc => ({...doc.data() }))
+                .filter(ticket => ticket.authorId !== ticket.handlerId) as Ticket[];
 
-        /* Query all the ticekts where the user is the handler of the ticket,
-            and not the author of it */
-        let queryHandler = ticketsRef.where("Handler", "==", username)
-                                    .where("Author", "!=", username);
+                if (orderBy !== "title" && orderBy !== "deadline" && orderBy !== "createdAt" && orderBy !== "status" && orderBy !== "priority") {
+                    throw new AppError(`InvalidOrderField`, 400, `Invalid order criteria`);
+                }
+                
+                combined.sort((a, b) => {
+                    const aVal = a[orderBy];
+                    const bVal = b[orderBy];
 
-        /* Order both collections by the order criteria and the direction, 
-            received from the api call */ 
-        queryAuthor = queryAuthor.orderBy(orderBy, orderDirection);
-        queryHandler = queryHandler.orderBy(orderBy, orderDirection);
-        
-        /* Implementation of the cursor type pagination */
-        /* If a ticket ID was sent with the value `startAfter`,
-            fetch the tickets that come after it */
-        if (startAfter) {
-            /* Check if the ticket with the sent ID exists */
-            const lastDocSnapshot = await db.collection("Tickets").doc(startAfter).get();
+                    if (aVal === bVal) return 0;
 
-            /* Mark the starting point from where the fetching will begin
-                for both collections of tickets */
-            if (lastDocSnapshot.exists) {
-                queryAuthor = queryAuthor.startAfter(lastDocSnapshot);
-                queryHandler = queryHandler.startAfter(lastDocSnapshot);
+                    if (orderDirection === "asc") {
+                        return aVal > bVal ? 1 : -1;
+                    } else {
+                        return aVal < bVal ? 1 : -1;
+                    }
+                });
+
+                // Handle pagination manually
+                if (startAfter) {
+                    const startIndex = combined.findIndex(ticket => ticket.id === startAfter);
+                    if (startIndex >= 0) {
+                        return combined.slice(startIndex + 1, startIndex + 1 + limit);
+                    }
+                }
+
+                return combined.slice(0, limit);
+            },
+            "RetrieveUserTicketsError",
+            500,
+            "Failed to retrieve user tickets list"
+        );
+    }
+
+
+    /**
+     * 
+     * @param {string} ticketId The ID of the ticket
+     * @returns {Promise<Ticket>} The data of the ticket
+     */
+    async getUserTicketById(ticketId: string): Promise<Ticket> {
+        return await executeWithHandling(async () => {
+            /* Get the ticket reference */
+            const ticketRef = await db.collection(this._dbTicketsCollection).doc(ticketId).get();
+
+            /* If the ticket could not be found throw a specific error */
+            if (!ticketRef.exists) {
+                throw new AppError(`TicketNotFound`, 404, `Ticket not found`);
             }
-        }
 
-        /* Fetch the number of tickets delimited by the limit 
-            that was received from the api call for both collections */
-        queryAuthor = queryAuthor.limit(limit);
-        queryHandler = queryHandler.limit(limit);
-
-        try {
-            /* Get the tickets collection */
-            const ticketsAuthor = await queryAuthor.select("Title", "AuthorPicture", "Priority", "Status", "Deadline").get();
-            const ticketsHandler = await queryHandler.select("Title", "AuthorPicture", "Priority", "Status", "Deadline").get();
-
-            /* Add both collections into a new list */
-            const allTickets = [
-                
-                /* For each ticket inside the author collection
-                    add the ticket data and the ticket ID */
-                ...ticketsAuthor.docs.map((doc) => ({
-                    id: doc.id,
-                    data: doc.data() as Ticket,
-                })),
-                
-                /* For each ticket inside the handler collection
-                    add the ticket data and the ticket ID */
-                ...ticketsHandler.docs.map((doc) => ({
-                    id: doc.id,
-                    data: doc.data() as Ticket,
-                })),
-            ];
-
-            /* Sort the newly created list based on the direction 
-                received from the api call */
-            allTickets.sort((a, b) => {
-                const aValue = a.data[orderBy];
-                const bValue = b.data[orderBy];
-
-                if (orderDirection === "asc") {
-                    return aValue > bValue ? 1 : -1;
-                } 
-                    return aValue < bValue ? 1 : -1;
-            });
-
-            /* Slice the list of tickets so it does not return 
-                more tickets than it is required */
-            const limitedTickets = allTickets.slice(0, limit);
-
-            return limitedTickets;
-        } catch (error) {
-            /* Log the error that appeared while fetching the ticket collection */
-            throw new Error(`Error fetching tickets for the user ${username}: ${error}`);
-        }
+            /* Return the ticket data */
+            return ticketRef.data() as Ticket;
+            },
+            `GetTicketError`,
+            500,
+            `Failed to retrieve ticket data`
+        );
     }
 
     /**
      * 
      * @param {string} ticketId The ID of the ticket
-     * @returns {Promise<TicketObject>} The specific ticket after filtering based on username and ID
+     * @param {Ticket} updatedTicket The new ticket data
+     * @returns {Promise<Ticket>} The updated ticket data
      */
-    async getUserTicketById(ticketId: string): Promise<TicketObject> {
-        /* A user should have access to  a specific ticket data only if:
-            ** The user is the author of the ticket
-            ** The user is the handler of the ticket
-            ** The user is an admin
-        */
-        return await executeWithHandling(async () => {
-             /* Get the ticket with the ID from the function parameters from the database */
-            const tikcetRef = await db.collection("Tickets").doc(ticketId).get();
-
-            /* If the ticket could not be found throw a specific error */
-            if (!tikcetRef.exists) {
-                throw new Error(`Ticket with the ID ${ticketId} could not be found`);
-            }
-
-            /* The values from the ticket will be stored in the new variable */
-            let ticket: TicketObject;
-
-            /* Add to the ticket data the id of the ticket and return the new object */
-            ticket = {
-                id: ticketId,
-                data: tikcetRef.data() as Ticket,
-            };
-
-            return ticket;
-            },
-            `Failed to fetch the data of the ticket: ${ticketId}`
-        );
-    }
-
-    /**
-     * 
-     * @param {Ticket} updateTicket The new ticket data used for updating the ticket  
-     * @param {stirng} ticketId The document from the ticket collection 
-     * @returns {Promise<boolean>} True if the ticket data was updated and false otherwise
-     */
-    async updateTicketById(updateTicket: Ticket, ticketId: string) : Promise<boolean> {
-        return await executeWithHandling(
+    async updateTicketById(ticketId: string, updatedTicket: Ticket) : Promise<Ticket> {
+        return executeWithHandling(
             async () => {
-                /* If the ticket status is "Closed" set the ClosedAt value to the current time */
-                if (updateTicket.Status === "Closed") {
-                    const closedAt = new Date().toString();
+                /* Get the ticket reference */
+                const ticketRef = db.collection(this._dbTicketsCollection).doc(ticketId);
 
-                    await db.collection("Tickets").doc(ticketId).update({
+                /* Get the ticket document */
+                const ticketDoc = await ticketRef.get();
+
+                /* Check if the ticket exists */
+                if (!ticketDoc.exists) {
+                    throw new AppError(`TicketNotFound`, 404, `Ticket not found. Failed to update ticket data`);
+                }
+
+                /* If the ticket status is "Closed" set the ClosedAt value to the current time */
+                if (updatedTicket.status === "Closed") {
+                    const closedAt = Date.now();
+
+                    await db.collection(this._dbTicketsCollection).doc(ticketId).update({
+                        ...updatedTicket,
                         closedAt,
-                        ...updateTicket,
                     });
 
-                    return true;
+                    return (await ticketRef.get()).data() as Ticket;
                 }
 
                 /* Update the ticket with the data received from the ticketService object*/
-                await db.collection("Tickets").doc(ticketId).update({
-                    ...updateTicket, 
+                await db.collection(this._dbTicketsCollection).doc(ticketId).update({
+                    ...updatedTicket, 
                 });
 
-                return true;
+                /* Return the updated ticket */
+                return (await ticketRef.get()).data() as Ticket;
             },
-            `Failed to updated the data of the ticket: ${ticketId}`
+            `UpdateTicketError`,
+            500,
+            `Failed to updated ticket data`
         );
     }
 
     /**
      * 
-     * @param {string} handler The user responsible to work on a ticket 
-     * @param {string} handlerId The ID of the handler 
-     * @param {string} ticketId The document name from the ticket collection 
-     * @returns {Promise<boolean>} Returns true if the handler and the handlerId
-     * were assigned and false otherwise
+     * @param {string} ticketId The ID of the ticket
+     * @param {string} handlerId The ID of the handler
+     * @returns {Promise<Ticket>} The updated ticket data
      */
-    async assignTicket(handler: string, handlerId: string, ticketId: string): Promise<boolean> {
-        return await executeWithHandling(
+    async assignTicket(ticketId: string, handlerId: string): Promise<Ticket> {
+        return executeWithHandling(
             async() => {
-                /* Access a specific ticket from the database collection
-                    based on the received ID, and updated its handler and handlerId */
-                const ticketRef = db.collection("Tickets").doc(ticketId);
-                
+                /* Get ticket reference */
+                const ticketRef = db.collection(this._dbTicketsCollection).doc(ticketId);
+
+                /* Get the ticket document */
+                const ticketDoc = await ticketRef.get();
+
+                /* Check if the ticket exists */
+                if (!ticketDoc.exists) {
+                    throw new AppError(`TicketNotFound`, 404, `Ticket not found. Faild to assign ticket handler`);
+                }
+
+                /* Update the ID of the handler */
                 await ticketRef.update({
-                    Handler: handler,
-                    HandlerId: handlerId,
+                    handlerId,
                 });
 
-                /* Return true if the ticket was updated and false otherwise */
-                return true;
+                /* Return the updated ticket */
+                return (await ticketRef.get()).data() as Ticket;
             },
-            `Failed to assign the ticket: ${ticketId} to the user: ${handler}`
+            `AssignTicketError`,
+            500,
+            `Failed to assign ticket handler`
         );
     }
 
     /**
      * 
-     * @param {string} ticketId The document name inside the ticket collection 
-     * @returns {Promise<boolean>} Returns true if the ticket was deleted and false otherwise
+     * @param {string} ticketId The ID of the ticket 
+     * @returns {Promise<string>} "OK" if the ticekt was deleted, and an error otherwise
      */
-    async deleteTicket(ticketId: string): Promise<boolean> {
-        /* Delete the ticket from the database */
-        return await executeWithHandling (
+    async deleteTicket(ticketId: string): Promise<string> {
+        return executeWithHandling(
             async () => {
-                await db.collection("Tickets").doc(ticketId).delete();
+                /* Get ticket reference */
+                const ticketRef = db.collection(this._dbTicketsCollection).doc(ticketId);
 
-                /*If the ticket was deleted return true otherwise false and log the error*/
-                return true;
+                /* Get ticket document */
+                const ticketDoc = await ticketRef.get();
+
+                /* Check if the ticket exists */
+                if (!ticketDoc.exists) {
+                    throw new AppError(`TicketNotFound`, 404, `Ticket not found. Failed to delete ticket`);
+                }
+
+                /* Delete ticket */
+                await ticketRef.delete();
+
+                /* Return success message */
+                return "OK";
             },
-            `Failed to delete the ticket: ${ticketId}`
+            `DeleteTicketError`,
+            500,
+            `Failed to delete ticket`,
         );        
     }
 
     /**
      * 
-     * @returns The collection of tickets that are not closed
+     * @param {number} in24h The next 24h in ms
+     * @param {number} now The current time in ms
+     * @param {number} day The day time in ms
+     * @returns {Promise<Ticket[]>} The list of due tickets
      */
-    async checkUpcomingTicketDeadline(): Promise<TicketObject[]> {
+    async checkUpcomingTicketDeadline(in24h: number, now: number, day: number): Promise<Ticket[]> {
         return await executeWithHandling(
             async () => {
-                /* Get the tickets collection query */
-                let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = 
-                    db.collection("Tickets");
+                /* Get the tickets reference */
+                const ticketsRef = db.collection(this._dbTicketsCollection)
+                    .where("notified", "==", false)
+                    .where("closedAt", "==", null)
+                    .select("id", "title", "authorId", "handlerId", "priority", "type", "deadline");
+               
+                /* Get the tickets snapshot data */
+                const snapshot = await ticketsRef.get();
 
-                /* Select only the tickets that have a handler, 
-                    were not notified already and are not closed */
-                ticketsRef = ticketsRef.where("ClosedAt", "==", null)
-                    .where("Notified", "==", false)
-                    .where("Handler", "!=", "")
-                    .where("HandlerId", "!=", "");
-                
+                const filtered: Ticket[] = [];
 
-                /* Fetch only the title, creation date and the deadline */
-                const ticketsData = await ticketsRef.select("Title", "CreatedAt", "Deadline").get();
+                /* Iterate over each ticket */
+                snapshot.forEach((doc) => {
+                    const ticket = doc.data() as Ticket;
+                    
+                    /* Get the creation date and the deadline */
+                    const { createdAt, deadline } = ticket;
 
-                let tickets: TicketObject[] = [];
+                    /* Get the time left between the deadline and the current time */
+                    const timeUntilDeadline = deadline - now;
 
-                /* Add each ticket with its id to the tickets collection */
-                ticketsData.forEach((doc) => {
-                    tickets.push({
-                        id: doc.id,
-                        data: doc.data() as Ticket,
-                    });
+                    /* Skip the ticket is the deadline is passed */
+                    if (timeUntilDeadline < 0) {
+                        return;
+                    }
+
+                    /* Get the time between the deadline and the creation time */
+                    const fullDuration = deadline - createdAt;
+
+                    /* Check if the time to the deadline is smaller than 24h */
+                    const isDeadlineSoon = timeUntilDeadline <= day;
+
+                    /* Check if the time to complete the ticket is shorter than a day */
+                    const isShortLifespan = fullDuration < day;
+
+                    /* For tickets with deadline shorter than a day,
+                        check if half of the time has elapsed */
+                    const isMoreThanHalfPassed = timeUntilDeadline < fullDuration / 2;
+
+                    /* If the ticket deadline is due, add the ticket to the list */
+                    if (isDeadlineSoon || (isShortLifespan && isMoreThanHalfPassed)) {
+                        filtered.push(ticket);
+                    }
                 });
 
+                return filtered;
+            },
+            `GetUpcomingTicketDeadlinesError`,
+            500,
+            `Failed to retreieve upcoming ticket deadllines`
+        );
+    }
+
+    /**
+     * 
+     * @param {string} ids The IDs of the tickets
+     * @returns {Promise<Ticket[]>} The list of tickets
+     */
+    async getTickets(ids: string[]): Promise<Ticket[]> {
+        return executeWithHandling(
+            async () => {
+                const tickets: Ticket[] = [];
+
+                /* Iterate over the IDs list */
+                for (let i = 0; i < ids.length; i+= 10) {
+                    /* Create a chunk of 10 elements (max free chunck limit) */
+                    const chunk = ids.slice(i, i + 10);
+
+                    /* Get "chunk" tickets based on the IDs */
+                    const snapshot = await db
+                        .collection(this._dbTicketsCollection)
+                        .where(FieldPath.documentId(), "in", chunk)
+                        .get();
+                    
+                    /* Add each ticket to the list */
+                    snapshot.forEach(doc => {
+                        tickets.push(doc.data() as Ticket);
+                    });
+                }
+
+                /* Return the tickets */
                 return tickets;
             },
-            `Failed to fetch tickets for upcoming deadlines`
-        )
+            `RetrieveTicketsError`,
+            500,
+            `Failed to retrieve tickets list`,
+        );
     }
 }

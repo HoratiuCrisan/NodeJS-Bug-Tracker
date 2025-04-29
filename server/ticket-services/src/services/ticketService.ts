@@ -1,8 +1,15 @@
-import { TicketRepository } from "#/repository/ticketRepository";
-import { RabbitMqRepository } from "#/repository/rabbitMqRepository";
-import { Ticket, TicketObject } from "#/utils/interfaces/Ticket";
-import { executeWithHandling } from "#/utils/throwError"
-
+import { TicketRepository } from "../repository/ticketRepository";
+import { RedisService } from "./redisService";
+import { Ticket, TicketCard} from "../types/Tickets";
+import { v4 } from "uuid";
+import crypto from "crypto";
+import { AppError, User } from "@bug-tracker/usermiddleware";
+import { 
+    createNotificationMessage, 
+    NotificationProducer, 
+    NotificationMessage 
+} from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/notification-lib/src";
+import {UserProducer} from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/user-lib/src";
 
 /* The Ticket Service class: 
     Encapsulates the business logic: 
@@ -11,233 +18,456 @@ import { executeWithHandling } from "#/utils/throwError"
 */
 export class TicketService {
     private _ticketRepository: TicketRepository;
-    private _rabbitMqRepository: RabbitMqRepository;
+    private _redisService: RedisService;
 
     /* Create an instance of the TicketRepository class */
     constructor() {
         this._ticketRepository = new TicketRepository();
-        this._rabbitMqRepository = new RabbitMqRepository();
+        this._redisService = new RedisService();
     }
 
     /**
      * 
-     * @param {Ticket} ticketData The ticket data received from the user to create a ticket with
-     * @returns {Promise<TicketObject>} The ticket data and its id if the ticket was created
+     * @param {string} userId The ID of the user that sent the request 
+     * @param {string} title The title of the ticket
+     * @param {string} description The description of the ticket
+     * @param {string} priority The priority of the ticket
+     * @param {string} type The type of ticket
+     * @param {number} deadline The deadline of the ticket
+     * @returns {Promise<Ticket>} The created ticket document
      */
-    async createTicket(ticketData: Ticket): Promise<TicketObject> {
-        /* Validate the ticket data received as a parameter */
-        this.validateTicketData(ticketData);
+    async createTicket(
+        userId: string, 
+        title: string, 
+        description: string, 
+        priority: string, 
+        type: string, 
+        deadline: string
+    ): Promise<Ticket> {
+        /* Create a new ticket object with the received data */
+        const ticket: Ticket = {
+            id: v4(),
+            authorId: userId,
+            handlerId: null,
+            title,
+            description,
+            priority,
+            type,
+            status: "new",
+            response: null,
+            createdAt: Date.now(),
+            closedAt: null,
+            deadline: new Date(deadline).getTime(),
+            files: [],
+            notified: false,
+        };
 
-        /* Try to create a new ticket by passing the ticket data to the Ticket Repository
-        function that adds the data to the database */
-        return await executeWithHandling(
-            () => this._ticketRepository.createTicket(ticketData)
-        );
+        /* Send the data to the repository layer to create the ticket */
+        const createdTicket = await this._ticketRepository.createTicket(ticket);
+
+        /* Cache the ticket for the user */
+        await this._redisService.cacheTicket(userId, ticket);
+
+        /* Return the ticket data */
+        return createdTicket;
     }
 
     /* Only admins have permission to fetch all the tickets */
     /**
      * 
-     * @param {number} limit The number of tickets fetched at a time
-     * @param {string} orderBy The field to sort by
-     * @param {"asc" | "desc"} orderDirection The direction of the ordering
+     * @param {number} limit The number of tickets to retrieve
+     * @param {string} orderBy The criteria to order tickets by
+     * @param {string} orderDirection The direction of the ordering
      * @param {string | undefined} status The status of the ticket
      * @param {string | undefined} priority The priority of the ticket
      * @param {string | undefined} startAfter The last ticket ID that was fetched 
-     * @returns {Promise<TicketObject[]>} The collection of all the tickets
+     * @returns {Promise<Ticket[]>} The collection of all the tickets
      */
     async getAllTickets(
         limit: number, 
-        orderBy: "Title" | "CreatedAt" | "Deadline" | "Type" | "Priority" | "Status",
-        orderDirection: "asc" | "desc", 
+        orderBy: string,
+        orderDirection: string, 
         status?: string,
         priority?: string,
         startAfter?: string,
-    ): Promise<TicketObject[]> {
-        /* Get all tickets by calling the Ticket Repository function that fetches the 
-            tickets from the database */
-        return await executeWithHandling(() => this._ticketRepository.getAllTickets(
+    ): Promise<Ticket[]> {
+        /* Generate a hash key for the request query */
+        const redisKey = this.generateQueryHashKey(
             limit, 
             orderBy, 
             orderDirection, 
             status, 
             priority, 
             startAfter
-        ));
+        );
+
+        /* Check if the key was previously cached */
+        const cached = await this.getCachedTickets(redisKey);
+
+        if (cached) {
+            return cached;
+        }
+
+        /* If the key was not cached, send the data to the repository layer to retrieve the tickets list from the data base */
+        const tickets = await this._ticketRepository.getAllTickets(limit, orderBy, orderDirection, status, priority, startAfter);
+
+        /* Get the IDs of the tickets */
+        const ticketIds: string[] = tickets.map((ticket) => ticket.id); 
+
+        /* Cache the query key */
+        await this._redisService.cacheQuery(redisKey, ticketIds);
+
+        /* Return the tickets list */
+        return tickets;
     }
 
     /**
      * 
-     * @param {string} username The user that is the author or the handler of the ticket
+     * @param {string} userId The ID of the user to retrieve tickets for
      * @param {number} limit The number of tickets returned at a time
      * @param {string} orderBy The field to sort by
      * @param {"asc" | "desc"} orderDirection The order direction
      * @param {string} status The status of the ticket
      * @param {string} priority The priority of the ticket
      * @param {string} startAfter The last ticket fetched berfore the current request
-     * @returns {Promise<TicketObject[]>} The collection of the tickets for a specific user
+     * @returns {Promise<Ticket[]>} The collection of the tickets for a specific user
      */
     async getUserTickets(
-        username: string, 
+        userId: string,
         limit: number, 
-        orderBy: "Title" | "CreatedAt" | "Deadline" | "Type" | "Priority" | "Status", 
-        orderDirection: "asc" | "desc", 
+        orderBy: string, 
+        orderDirection: string, 
         status?: string,
         priority?: string,
         startAfter?: string,
-    ): Promise<TicketObject[]> {
-        /* Get the collection of tickets for a specific user,
-            by calling the getUserTickets method from the TicketRepository class */
-        return await executeWithHandling(() => 
-            this._ticketRepository.getUserTickets(username, limit, orderBy, orderDirection, status, priority, startAfter)
+    ): Promise<Ticket[]> {
+        if (orderDirection != "asc" && orderDirection != "desc") {
+            throw new AppError(`InvalidOrderDirection`, 400, `Invalid order direction`);
+        }
+
+        /* Generate the hashed query key */
+        const redisKey = this.generateQueryHashKey(
+            limit, 
+            orderBy, 
+            orderDirection, 
+            status, 
+            priority, 
+            startAfter
         );
+
+        /* Check if the key is cached */
+        const cached = await this.getCachedTickets(redisKey);
+
+        /* If the query key is cached return the cahced tickets list */
+        if (cached) {
+            return cached;
+        }
+
+        /* If the key is not cached send the data to the repository layer to retrieve the user tickets */
+        const tickets = await this._ticketRepository.getUserTickets(userId, limit, orderBy, orderDirection, status, priority, startAfter);
+
+        /* Get the ticket IDs */
+        const ticketIds = tickets.map((ticket) => ticket.id);
+
+        /* Cache the query key */
+        await this._redisService.cacheQuery(redisKey, ticketIds);
+
+        /* Return the tickets list */
+        return tickets;
     }
 
     /**
      * 
-     * @param {string} username The user that is either the author or the handler of the ticket  
+     * @param {string} userId The user that is either the author or the handler of the ticket  
      * @param {string} ticketId The ID of the ticket
      * @param {string} role The role of the user
-     * @returns {Promise<TicketObject>} The data and the ID of a specific ticket 
+     * @returns {Promise<Ticket>} The data and the ID of a specific ticket 
      */
     async getUserTicketById(
-        username: string, 
+        userId: string, 
         ticketId: string, 
         role: string
-    ): Promise<TicketObject> {
-        return await executeWithHandling(async () => {
-            /* Get the ticket data by calling the getUserTicektById method
-            from the TicketRepository class */
-            const ticket: TicketObject = await this._ticketRepository.getUserTicketById(ticketId);
-            
-            /* Check if the user is either:
-                - the author of the ticket
-                - the handler of the ticket
-                - an admin 
-                in order to have access to the ticket data */ 
-            this.checkUserPermission(ticket.data, username, role);
-            this.validateTicketData(ticket.data);
-            
-            return ticket;
-        });   
+    ): Promise<Ticket> {
+        /* Check if the ticket is cached for the user */
+        const cached = await this._redisService.isTicketCached(ticketId);
+
+        /* If the ticket is cached return the cached ticket data */
+        if (cached) {
+            return cached;
+        }
+
+        /* If the ticket is not cached send the data to the service layer to retrieved the ticket */
+        const ticket: Ticket = await this._ticketRepository.getUserTicketById(ticketId);
+
+        /* Check if the user has permission to access the ticket data */
+        this.checkUserPermission(userId, role, ticket);
+
+        /* Cache the ticket for the user */
+        await this._redisService.cacheTicket(ticketId, ticket);
+        
+        /* Return the retrieved ticket data */
+        return ticket; 
     }
 
     /**
      * 
-     * @param {Ticket} updateTicket The data of the ticket
-     * @param {string} username The user that wants to perform the updating operation
-     * @param {string} ticketId The ID of the ticket 
-     * @param {string} role The role of the user
-     * @returns {Promise<TicketObject> } The updated ticket data
+     * @param {string} userId The ID of the user that sent the request
+     * @param {string} role The role of the user that sent the request
+     * @param {Ticket} data The new ticket data
+     * @returns {Promise<Ticket>} The updated ticket data
      */
     async updateTicketById(
-        updateTicket: Ticket, 
-        username: string, 
-        ticketId: string, 
-        role: string
-    ) : Promise<TicketObject> {
-        return await executeWithHandling(async () => {
-            /* Check if the ticket with the specified ID exists */
-            const ticketExists: TicketObject = await this._ticketRepository.getUserTicketById(ticketId);
+        userId: string,
+        ticketId: string,
+        role: string,
+        data: Ticket
+    ) : Promise<Ticket> {
+        /* Check if the ticket is locked */
+        const isLocked = await this._redisService.isTicketLocked(ticketId);
 
-            /* Throw an error if the user is not authorized to update the ticket data */
-            this.checkUserPermission(ticketExists.data, username, role);
-    
-            /* Check if the ticket was updated */
-            await this._ticketRepository.updateTicketById(updateTicket, ticketId);
-    
-            /* Fetch the ticket with the updated data;
-                If the ticket could not be fetched,
-                a specific error */
-            const updatedTicket: TicketObject = await this._ticketRepository.getUserTicketById(ticketId);
-    
-            /* Return the updated ticket */
-            return updatedTicket;
-        });
+        /* If the ticket is locked by another user, deny the update */
+        if (isLocked && !this.isLockedByUser(userId, isLocked)) {
+            throw new AppError(`TicketIsLocked`, 400, `Failed to update ticket. Another user is working on the ticket`);
+        }
+
+        /* Lock the ticket */
+        if (!isLocked) {
+            await this._redisService.lockTicket(userId, ticketId);
+        }
+
+        /* Check if the user has permission to update the ticket */
+        this.checkUserPermission(userId, role, data);
+
+        /* Update the ticket data */
+        const ticket = await this._ticketRepository.updateTicketById(ticketId, data);
+
+        /* Cache the ticket */
+        await this._redisService.cacheTicket(ticketId, ticket);
+
+        /* Unlock the ticket */
+        await this._redisService.unlockTicket(ticketId);
+
+        /* Return the updated ticket data */
+        return ticket;
     }
 
     /**
      * 
-     * @param {string} handler The user that the ticket will be assigned to
-     * @param {string} handlerId The ID of the handler
+     * @param {string} userId  The ID of the user that sent the request 
+     * @param {string} handlerId The ID of the new handler of the ticket
      * @param {string} ticketId The ID of the ticket
-     * @returns {Promise<TicketObject>} The updated ticket data
+     * @returns {Promise<Ticket>} The updated ticket data 
      */
     async assignTicket(
-        handler: string, 
-        handlerId: string, 
-        ticketId: string
-    ): Promise<TicketObject> {
-        /* Only the userts with the ADMIN role can assign tickets */
-        return await executeWithHandling(async () => {
-            /* Check if the ticket exists */
-            await this._ticketRepository.getUserTicketById(ticketId);
+        userId: string,
+        handlerId: string,
+        ticketId: string,
+    ): Promise<Ticket> {
+        /* Check if the ticket is locked */
+        const isLocked = await this._redisService.isTicketLocked(ticketId);
 
-            /* Assign ticekt handler and handlerId */
-            await this._ticketRepository.assignTicket(handler, handlerId, ticketId);
+        /* If the ticket is locked by another user, deny the update */
+        if (isLocked && !this.isLockedByUser(userId, isLocked)) {
+            throw new AppError(`TicketIsLocked`, 400, `Failed to update ticket. Another user is working on the ticket`);
+        }
 
-            /* Get the ticket with the updated values */
-            const updatedTicket: TicketObject = await this._ticketRepository.getUserTicketById(ticketId);
+        /* Lock the ticekt */
+        await this._redisService.lockTicket(userId, ticketId);
 
-            return updatedTicket;
-        });
+        /* Update the ticket */
+        const ticket = await this._ticketRepository.assignTicket(ticketId, handlerId);
+
+        /* Cache the ticket */
+        await this._redisService.cacheTicket(ticketId, ticket);
+
+        /* Unlock the ticket */
+        await this._redisService.unlockTicket(ticketId);
+
+        /* Return the updated data */
+        return ticket;
     }
 
-    /**
-     * 
-     * @param {string} username The user that wants to perform the deletion process
-     * @param {string} ticketId The ID of the ticket
-     * @param {string} role The role of the user
-     * @returns {Promise<boolean>} True if the ticket was deleted and false otherwise
-     */
-    async deleteTicket(username: string, ticket: TicketObject, ticketId: string, role: string): Promise<boolean> {
-        /* Only the author and the users with ADMIN role have permission to delet tickets */ 
-        
-        return await executeWithHandling(async () => {
-            /* Check if the user has permission to delete the ticket */
-            this.checkUserPermission(ticket.data, username, role);
+     /**
+      * 
+      * @param userId The ID of the user that sent the requets 
+      * @param ticektId The ID of the ticket 
+      * @param role The role of the user
+      */
+    async deleteTicket(userId: string, ticketId: string, role: string): Promise<string> {
+        /* Check if the ticket is locked */
+        const isLocked = await this._redisService.isTicketLocked(ticketId);
 
-            return await this._ticketRepository.deleteTicket(ticketId);
-        });
+        /* If the ticket is locked by another user, deny the deletion */
+        if (isLocked && !this.isLockedByUser(userId, isLocked)) {
+            throw new AppError(`TicketIsLocked`, 400, `Failed to update ticket. Another user is working on the ticket`);
+        }
+
+        /* Lock the ticket */
+        await this._redisService.lockTicket(userId, ticketId);
+
+        /* Get the ticket data */
+        const ticket = await this._ticketRepository.getUserTicketById(ticketId);
+
+        /* Check if the user has the permission to delete the ticket */
+        if (ticket.authorId !== userId && role !== "admin") {
+            throw new AppError(`UnauthorizedRequest`, 401, `Unauthorized request. Permission denied`);
+        }
+
+        /* Delete the ticket */
+        const deletedTicket = await this._ticketRepository.deleteTicket(ticketId);
+
+        /* Check if the ticket is cached */
+        const cached = await this._redisService.isTicketCached(ticketId);
+
+        /* Check if the ticket is cached */
+        if (cached) {
+            /* Remove the ticket from the cache */
+            await this._redisService.removeTicketFromCache(ticketId);
+        }
+
+        /* Unlock the ticket */
+        await this._redisService.unlockTicket(ticketId);
+
+        /* Return the success message */
+        return deletedTicket;
     }   
 
     /**
      * 
      * @returns A map of tickets with the message of the hours and minutes left until the deadline
      */
-    async checkUpcomingTicketDeadline(): Promise<Map<TicketObject, string>> {
-        return await executeWithHandling(
-            async () => {
-                /* Get the current time in milliseconds */
-                const currentTime: number = new Date().getTime();
+    async checkUpcomingTicketDeadline() {
+        const day = 24 * 60 * 60 * 1000;
+        const in24h = Date.now() + day;
+        const timestamp = Date.now();
 
-                /* Fetch the unfinished tickets up for deadline */
-                const tickets: TicketObject[] = await this._ticketRepository.checkUpcomingTicketDeadline();
+        /* Fetch the unfinished tickets up for deadline */
+        const tickets: Ticket[] = await this._ticketRepository.checkUpcomingTicketDeadline(in24h, timestamp, day);
 
-                
-                const ticketsMap: Map<TicketObject, string> = new Map();
+        /* Get the handlers of each ticket */
+        const handlerIds = this.getTicketHandlerIds(tickets);
 
-                /* Iterate over each ticket in the collection */
-                tickets.forEach((ticket: TicketObject) => {
-                    /* Get the seconds left until the deadline of the ticket */
-                    const seconds: number = (new Date(ticket.data.Deadline).getTime() - currentTime) / 1000;
+        /* Get the users data for each handler ID */
+        const users: User[] = await this.getTicketUsersData(handlerIds);
 
-                    /* Convert the seconds into hours */
-                    const hours: number = Math.floor(seconds / 3600);
+        /* Notify each handler about the due tickets */
+        await this.notifyHandlers(users, tickets);
+    }
 
-                    /* If the deadline is in less than a day, add the ticket to the map
-                        with a message containing the time left (in hours and minutes) */
-                    if (hours <= 24) {
-                        const notificationMsg: string = `Your ticket '${ticket.data.Title}' is due today in ${this.getTimeLeft(seconds)}`;
-                        
-                        ticketsMap.set(ticket, notificationMsg);
-                    }
-                });
+    /**
+     * 
+     * @param {Ticket[]} tickets The list of tickets
+     * @returns {string[]} The list of handler IDs
+     */
+    getTicketHandlerIds(tickets: Ticket[]): string[] {
+        /* Map over the ticket list and return the handler ID */
+        const handlers = tickets.map((ticket: Ticket) => ticket.handlerId);
 
-                return ticketsMap;
-            },
-            `Failed to check the time left until the deadline for the unfinished tickets`
-        );
+        /* Filter the handler IDs and remove the null elements */
+        const filteredHandlers = handlers.filter((handler: string | null) => handler !== null);
+
+        /* Remove the duplicate handlers by converting the list to a set,
+            and convert the set back to a list */
+        const uniqueHandlers = Array.from(new Set(filteredHandlers));
+
+        return uniqueHandlers;
+    }
+
+    getTicketCards(users: User[], tickets: Ticket[]): TicketCard[] {
+        const usersMap = new Map(users.map(user => [user.id, user]));
+
+        const list: TicketCard[] = [];
+
+        tickets.forEach((ticket: Ticket) => {
+           const user = usersMap.get(ticket.authorId);
+           
+           if (!user) return;
+
+            list.push({
+                user: {
+                    displayName: user.displayName,
+                    photoUrl: user.photoUrl,
+                },
+                ticket: {
+                    ...ticket
+                }
+            });
+        });
+
+        return list;
+    }
+
+    /**
+     * 
+     * @param {Ticket[]} tickets The list of tickets
+     * @returns {string[]} The list of author IDs
+     */
+    getTicketAuthorIds(tickets: Ticket[]): string[] {
+        /* Map over the ticket list and return the Author ID */
+        const authors = tickets.map((ticket: Ticket) => ticket.authorId);
+
+        /* Remove the duplicate authors by converting the list to a set,
+            and convert the set back to a list */
+        const uniqueAuthors = Array.from(new Set(authors));
+
+        return uniqueAuthors;
+    }
+
+    /**
+     * 
+     * @param {User[]} users The list of users
+     * @param {Ticket[]} tickets Teh list of Tickets
+     */
+    async notifyHandlers(users: User[], tickets: Ticket[]) {
+        /* Create a map with the users data */
+        const usersMap = new Map(users.map(user => [user.id, user]));
+
+        const notifications: NotificationMessage[] = [];
+
+        /* Map over each ticket */
+        tickets.forEach((ticket) => {
+            /* If the ticket has no handler skip the ticket */
+            if (!ticket.handlerId) return;
+
+            /* Get the user data from the map based on the ticket handler ID */
+            const user = usersMap.get(ticket.handlerId);
+
+            /* If the user data is not provided skip the ticket */
+            if (!user) return;
+
+            /* Add each notification for each due ticket */
+            notifications.push(createNotificationMessage(
+                user.id, 
+                user.email, 
+                `email`, 
+                `Ticket "${ticket.title}" is due at ${new Date(ticket.deadline).toLocaleString()}`, 
+                ticket
+            ));
+        });
+
+        /* Send each notification message to the notification producer to notify the users */
+        const notificationProducer = new NotificationProducer();
+        
+        notifications.forEach(async (notification) => {
+            await notificationProducer.assertQueue("notifications", notification);
+        });
+    }
+
+    /**
+     *
+     *
+     * @param {string[]} userIds The list of user IDs 
+     * @return {Promise<User[]>} The list of users data 
+     */
+    async getTicketUsersData(userIds: string[]): Promise<User[]> {
+        /* create a new rabbitMq user producer */
+        const userProducer = new UserProducer();
+
+        /* Send the IDs to the users queue to retrieve the users data */
+        const users = await userProducer.assertUserQueue("users", userIds);
+
+        /* Return the users data list */
+        return users;
     }
 
     /**
@@ -266,17 +496,16 @@ export class TicketService {
 
     /**
      * 
-     * @param {Ticket} ticket The data of a ticket 
-     * @param {string} username The user that wants to perform an operation
+     * @param {string} userId The ID of the user that sent the request
      * @param {string} role The role of the user
-     * @param {boolean} isHandler Checks if the user can also be a handler of a ticket
-     * @returns {boolean} True if user has permission and throws an error otherwise
+     * @param {Ticket} ticket The ticket data 
+     * @returns {boolean} True if the user has permisssion and an error otherwise
      */
-    checkUserPermission(ticket: Ticket, username: string, role: string, isHandler?: boolean) : boolean {
+    checkUserPermission(userId: string, role: string, ticket: Ticket) : boolean {
         /* Check if the user is allowed to operate on certain ticket data */
 
         /* Check if the user is the author of the ticket */
-        if (ticket.Author === username) {
+        if (ticket.authorId === userId) {
             return true;
         }
 
@@ -286,140 +515,106 @@ export class TicketService {
         }
 
         /* Check if the user is the handler of the ticket */
-        if (isHandler && ticket.Handler === username) {
+        if (ticket.handlerId === userId) {
             return true;
         }   
 
-        /* Prevent unauthorized users to perform exclusive operations */
-        throw new Error(`Unauthorized user: ${username} with role: ${role}! Permission denied`);
-    }
-
-    
-    /**
-     * 
-     * @param ticket The data of the ticket
-     */
-    validateTicketData(ticket: Ticket): void {
-        /* The ticket should be at least 10 characters long */
-        if (!ticket.Title || ticket.Title.trim().length === 0 || ticket.Title.length < 10) {
-            throw new Error(`The ticket title must be at least 10 (ten) characters long`);
-        }
-
-        /* The description should be at least 10 characters long */
-        if (!ticket.Description || ticket.Description.trim().length === 0 || ticket.Description.length < 10) {
-            throw new Error(`The ticket description must be at least 10 (ten) characters long`);
-        }
-
-        /* The ticket satatus should be either new, opened, closed or archived */
-        if (!["New", "Opened", "Closed", "Archived"].includes(ticket.Status)) {
-            throw new Error(`Invalid ticket status: ${ticket.Status}`);
-        }
-
-        /* The priority of the ticket should be either low, medium, high or urgent */
-        if (!["Low", "Medium", "High", "Urgent"].includes(ticket.Priority)) {
-            throw new Error(`Invalid ticket priority: ${ticket.Priority}`);
-        }
-
-        /* The ticket type should be either bug, feature or question */
-        if (!["Bug", "Feature", "Question"].includes(ticket.Type)) {
-            throw new Error(`Invalid ticket type: ${ticket.Type}`);
-        }
-
-        /* Every ticket should have a deadline date set */
-        if (ticket.Deadline.length === 0) {
-            throw new Error(`Invalid ticket deadline: ${ticket.Deadline}`);
-        }
-
-        /* Every ticket should have an author */
-        if (ticket.Author.trim().length === 0) {
-            throw new Error(`Invalid ticket author: ${ticket.Author}`);
-        }
-
-        /* Every ticket should have the profile picture of its author */
-        if (ticket.AuthorPicture.length === 0) {
-            throw new Error(`Invalid ticket author picture: ${ticket.AuthorPicture}`);
-        }
-
-        /* Every ticket should have a creation date */
-        if (ticket.CreatedAt.length === 0) {
-            throw new Error(`Invalid ticket creation data: ${ticket.CreatedAt}`);
-        }
+        /* Throw an error to deny the user access */
+        throw new AppError(`UnauthorizedRequest`, 401, `Unauthorized request. Permission denied`);
     }
 
     /**
      * 
-     * @param {string} routingKey The filter for the RabbitMq queue 
-     * @param {"info" | "audit" | "error"} type The type of message 
-     * @param {string} message The message to be sent to the queue 
-     * @returns {Promise<boolean>} True if the message was published and false otherwise
+     * @param {string} userId The user that sent the request
+     * @param {{lockedBy: string, lockedAt: number}} data The locked data
+     * @returns {boolean} True if the ticket is locked by the user and false otherwise
      */
-    async sendMessageToQueue(
-        routingKey: string, 
-        message: string, 
-    ): Promise<boolean> {
-        return await executeWithHandling(
-            async () => {
-                /* Add the type, the service type and the timestamp to the message */
+    isLockedByUser(userId: string, data: {lockedBy: string, lockedAt: number}): boolean {
+        if (userId !== data.lockedBy) return false;
 
-                /* Publish the message to the connected queues */
-                await this._rabbitMqRepository.publishMessage(routingKey, JSON.stringify(message));
-                
-                setTimeout(() => {}, 1000);
-                return true;
-            },
-        );
+        return true;
     }
 
     /**
      * 
-     * @param {string} username The user that will be notified 
-     * @param {TicketObject} ticket The data of the ticket
-     * @returns {string[]} The collection of users that will be notified
+     * @param {number} limit The number of tickets to retrieve
+     * @param {string} orderBy The tickets order criteria
+     * @param {string} orderDirection The direction of the order
+     * @param {string | undefined} status The status of the tickets
+     * @param {string | undefined} priority The priority of the tickets
+     * @param {string | undefined} startAfter The ID of the last retrieved ticket at the previous fetching request
+     * @returns {string} The hashed query key
      */
-    getUsersToNotify(username: string, ticket: TicketObject): string[] {
-        let users: string[] = [];
+    generateQueryHashKey(
+        limit: number,
+        orderBy: string,
+        orderDirection: string,
+        status?: string,
+        priority?: string,
+        startAfter?: string 
+    ): string {
+        /* Stringify the data */
+        const queryString = JSON.stringify({limit, orderBy, orderDirection, status, priority, startAfter});
 
-        if (username === ticket.data.Author) {
-            /* If the user that updated the ticket is the handler, notify the author about the changes */
-            users.push(ticket.data.Handler);
-        } else if (username === ticket.data.Handler) {
-             /* If the user that updated the ticket is the author, notify the handler about the changes */
-            users.push(ticket.data.Author);
-        } else {
-            /* If an admin updated the ticket, notify both the author and the handler about the changes */
-            users.push(ticket.data.Author, ticket.data.Handler);
+        /* Encrypt the data into a hash key */
+        const hash = crypto.createHash("md5").update(queryString).digest("hex");
+
+        /* Return the redis hash query key */
+        return `tickets:${hash}`;
+    }
+
+    /**
+     * 
+     * @param key The query hash key
+     * @returns {Promise<Ticket[] | null>} Null if no ticket is cached,
+     *  or the list of cached tickets and fetched missing tickets from the cache
+     */
+    async getCachedTickets(key: string): Promise<Ticket[] | null> {
+        /* Check if the query is cached and return the list of cached ticket IDs*/
+        const ticketIds = await this._redisService.isQueryCached(key);
+
+        if (!ticketIds) return null;
+
+        /* Get the cached tickets based on the IDs */
+        const redisKey = ticketIds.map(id => `ticket:${id}`);
+        const cachedTickets: Ticket[] = await this._redisService.cachedTickets(redisKey);
+  
+        const tickets: Ticket[] = [];
+        const missingIds: string[] = [];
+
+        /* Iterate over the list of cached tickets and if a ticket is missing
+            add the ID of the ticket to the list, otherwise add the ticket 
+            to the tickets list */
+        for (let i = 0; i < ticketIds.length; i++) {
+            const ticketData = cachedTickets[i];
+            if (ticketData) {
+                tickets.push(ticketData);
+            } else {
+                missingIds.push(ticketIds[i]);
+            }
         }
 
-        return users;
-    }
+        /* If there are no missing tickets return the tickets list */
+        if (missingIds.length === 0) return tickets;
 
-    /**
-     * 
-     * @param {string[]} users The collection of users to be notified
-     * @param {"info" | "audit" | "error"} type The type of message sent 
-     * @param {string} message The stringified message that will be sent
-     * @returns {Promise<boolean>} True if the message was sent and false otherwise
-     */
-    async notifyUsers(users: string[], type: "info" | "audit" | "error", message: string): Promise<boolean> {
-        return await executeWithHandling(
-            async () => {
-                /* Add the type, the service type and the timestamp to the message */
-                const notifyMessage = {
-                    type,
-                    details: {
-                        service: "ticket-service",
-                        timestamp: new Date().toUTCString(),
-                        message: message,
-                    },
-                };
-                
-                /* Send the notification message to the users */
-                await this._rabbitMqRepository.sendNotification(users, type, notifyMessage);
-    
-                setTimeout(() => {}, 1000);
-                return true;
-            },
-        )
+        const fetchedTickets: Ticket[] = await this._ticketRepository.getTickets(missingIds);
+
+        /* Cache every missing ticket */
+        for (const ticket of fetchedTickets) {
+            await this._redisService.cacheTicket(ticket.id, ticket);
+        }
+
+        /* Combine the tickets from the cache and the tickets from the database into a map */
+        const ticketMap = new Map<string, Ticket>();
+        [...tickets, ...fetchedTickets].forEach((ticket) => {
+            ticketMap.set(ticket.id, ticket);
+        });
+
+        /* Order the ticekts based on the request order */
+        const orderedTickets = ticketIds.map(id => ticketMap.get(id)).filter((ticket): ticket is Ticket => Boolean(ticket)); 
+
+        /* Return the ticekts list */
+        return orderedTickets;
     }
 
 }

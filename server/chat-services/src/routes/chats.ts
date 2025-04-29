@@ -1,55 +1,94 @@
-import { Request, Response, NextFunction, Router } from "express";
-import admin from '../../config/firebase';
-
-const db = admin.firestore();
+import { Router } from "express";
+import { checkRequestError } from "@bug-tracker/usermiddleware";
+import { verifyToken } from "@bug-tracker/usermiddleware"
+import { ChatController } from "../controller/chatController";
 
 const router = Router();
 
-router.post('/conversations', async (req: Request, res: Response) => {
-    const { conversationId, participants } = req.body;
-    if (conversationId === undefined || !participants || participants.length === 0) {
-        console.log(conversationId, participants);
-        return res.status(400).send('Invalid request');
-    }
+/* POST requests */
 
-    const conversationRef = db.collection('Conversations').doc(conversationId);
-    const conversationSnapshot = await conversationRef.get();
+router.post(
+    "/",
+    verifyToken,
+    checkRequestError,
+    ChatController.createConversation,
+);
 
-    if (!conversationSnapshot.exists) {
-        await conversationRef.set({
-            id: conversationId,
-            participants,
-            messages: [],
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-    }
+router.post(
+    "/:conversationId",
+    verifyToken,
+    checkRequestError,
+    ChatController.addMessage,
+);
 
-    return res.status(200).send({ conversationId: conversationId});
-});
+/* GET requests */
 
-router.get('/conversations/:conversationId/messages', async (req: Request, res: Response) => {
-    const  conversationId  = req.params.conversationId;
-    const conversationRef = db.collection('Conversations').doc(conversationId);
-    const conversationSnapshot = await await conversationRef.get();
+router.get(
+    "/",
+    verifyToken,
+    checkRequestError,
+    ChatController.getUserConversations,
+);
 
-    if (!conversationSnapshot.exists) {
-        return res.status(404).send({ error: 'Conversation not found' });
-    }
+router.get(
+    "/:conversationId",
+    verifyToken,
+    checkRequestError,
+    ChatController.getConversation,
+);
 
-    const conversastionData = conversationSnapshot.data();
-    
-    res.status(200).send(conversastionData?.messages || []);
-});
+router.get(
+    "/:conversationId/messages",
+    verifyToken,
+    checkRequestError,
+    ChatController.getConversationMessages,
+);
 
-router.get('/users', async (req: Request, res: Response) => {
-    const usersSnapshot = await db.collection('Users').get();
-    const users = usersSnapshot.docs.map((doc: admin.firestore.DocumentSnapshot) => ({
-        id: doc.id, ...doc.data()
-    }));
-    
-    return res.status(200).send(users);
-});
+router.get(
+    "/:conversationId/messages/unread/",
+    verifyToken,
+    checkRequestError,
+    ChatController.getUnreadMessages,
+);
 
+router.get(
+    "/:conversationId/messages/:messageId",
+    verifyToken,
+    checkRequestError,
+    ChatController.getMessage,
+);
+
+/* PUT requests */
+
+router.put(
+    "/:conversationId/:messageId",
+    verifyToken,
+    checkRequestError,
+    ChatController.updateMessage,
+);
+
+router.put(
+    "/:conversationId/messages/view",
+    verifyToken,
+    checkRequestError,
+    ChatController.viewMessages,
+);
+
+/* DELETE requests */
+
+router.delete(
+    "/:conversationId",
+    verifyToken,
+    checkRequestError,
+    ChatController.deleteConversation,
+);
+
+router.delete(
+    "/:conversationId/messages",
+    verifyToken,
+    checkRequestError,
+    ChatController.deleteMessages
+)
 
 export default router;
 

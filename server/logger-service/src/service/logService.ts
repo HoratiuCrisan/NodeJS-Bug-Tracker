@@ -1,39 +1,86 @@
-import { catchErrorTyped } from "../utils/errorHandler";
 import { LogRepository } from "../repository/logRepository";
-import { LogMessage } from "../utils/types/Log";
+import { LogMessage } from "@bug-tracker/logging-lib"
 
 export class LogService {
     private _logRepository: LogRepository;
-    private _document: string;
 
     constructor() {
         this._logRepository = new LogRepository();
-        this._document = new Date().toDateString();
     }
 
-    async createLog(data: LogMessage) {
-        const [logExistsError, logExists] = await catchErrorTyped(this._logRepository.getLog(this._document));
+    /**
+     * 
+     * @param {LogMessage} log The data of the log to be created
+     * @returns {Promise<LogMessage>} The data of the log
+     */
+    async createLog(log: LogMessage): Promise<LogMessage> {
+        /* Get the day when the log was created */
+        const currentDate = this.getCurrentDate();
 
-        if (logExistsError) {
-            throw logExistsError;
-        }
+        /* Send the data to the service layer to create the log */
+        return await this._logRepository.createLog(currentDate, log);
+    }
 
-        if (!logExists) {
-            const [createdLogError, createdLog] = await catchErrorTyped(this._logRepository.createLog(this._document, data));
+    /**
+     * 
+     * @param {string} logId The ID of the log to retrieve
+     * @param {string} day The day when the log was created
+     * @param {string} type The type of log
+     * @returns {Promise<LogMessage>} The data of the retrieved log
+     */
+    async getLog(logId: string, day: string, type: string): Promise<LogMessage> {
+        /* Send the data to the repository layer to retrieve the log data */
+        return this._logRepository.getLog(logId, day, type);
+    }
 
-            if (createdLogError) {
-                throw new Error(`Failed to create the log "${this._document}": ${createdLogError}`);
-            }
+    /**
+     * 
+     * @param {string} day The day when the log was created
+     * @param {string} type The type of the log
+     * @param {number} limit The number of logs to retrieve
+     * @param {string | undefined} startAfter The ID of the last retrieved log at the previous fetching
+     * @returns {Promise<LogMessage[]>} The list of retrieved logs 
+     */
+    async getLogs(day: string, type: string, limit: number, startAfter?: string): Promise<LogMessage[]> {
+        /* Send the data to the repository layer to retrieve the list of logs */
+        return this._logRepository.getLogs(day, type, limit, startAfter);
+    }
 
-            return createdLog;
-        }
+    /**
+     * 
+     * @param {string} logId The ID of the log to update
+     * @param {string} day The day when the log was created
+     * @param {string} type The type of log
+     * @param {LogMessage} log  The new log data
+     * @returns {Promise<LogMessage>} The updated log data
+     */
+    async updateLog(logId: string, day: string, type: string, log: LogMessage): Promise<LogMessage> {
+        /* Send the data to the repository layer to update the log */
+        return this._logRepository.updateLog(logId, day, type, log);
+    }
 
-        const [appendedLogError, appendedLog] = await catchErrorTyped(this._logRepository.appendLog(this._document, data));
+    /**
+     * 
+     * @param {string} logId The ID of the log to delete
+     * @param {string} day The day when the log was created
+     * @param {string} type The type of log
+     * @returns {Promise<string>} "OK" if the log was deleted
+     */
+    async deleteLog(logId: string, day: string, type: string): Promise<string> {
+        /* Send the data to the repository layer to delete the log */
+        return this._logRepository.deleteLog(logId, day, type);
+    }
 
-        if (appendedLogError) {
-            throw new Error(`Failed to append to the log "${this._document}" the message:\n"${data}"\n${appendedLogError}`);
-        }
+    /**
+     * 
+     * @returns {string} The current day in the format mm-dd-yyyy
+     */
+    getCurrentDate(): string {
+        const dateObj = new Date();
+        const day = dateObj.getUTCDate();
+        const month = dateObj.getUTCMonth();
+        const year = dateObj.getUTCFullYear();
 
-        return appendedLog;
+        return `${month}-${day}-${year}`;
     }
 }

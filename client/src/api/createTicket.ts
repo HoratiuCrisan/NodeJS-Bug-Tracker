@@ -1,6 +1,6 @@
 import axios from "axios"
 import { TICKETS_END_POINT } from "./endpoint"
-import { Ticket } from "../utils/interfaces/Ticket"
+import { Ticket } from "../utils/types/Ticket"
 
 interface CreateTicketProps {
     formData: TicketFormData

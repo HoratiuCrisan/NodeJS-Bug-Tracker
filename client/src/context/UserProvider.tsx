@@ -1,12 +1,12 @@
 import React, { useState, useEffect, createContext, ReactNode } from "react";
 import { io, Socket } from 'socket.io-client';
 import { getAuth } from "firebase/auth";
-import { User } from "../utils/interfaces/User";
+import { User } from "../utils/types/User";
 import { getAllUsersForChats } from "../api/messages/users";
 import { getUserConversations } from "../api/messages/chats";
 import { getUserNotifications } from "../api/notifications";
-import { Conversation, Message } from "../utils/interfaces/Chat";
-import { Notification } from "../utils/interfaces/Notification";
+import { Conversation, Message } from "../utils/types/Chat";
+import { Notification } from "../utils/types/Notification";
 import { getUserData } from "../api/users";
 import { useAxiosInterceptors } from "../hooks/token";
 
@@ -124,8 +124,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const fetchUserData = async (userId: string) => {
         const response = await getUserData(userId);
         if (response) {
-            console.log(response.user.role);
-            setUserRole(response.user.role);
+            console.log("USER PROVIDER DATA: ", response);
+            setUserRole(response.role);
         }
         setLoading(false);
     }

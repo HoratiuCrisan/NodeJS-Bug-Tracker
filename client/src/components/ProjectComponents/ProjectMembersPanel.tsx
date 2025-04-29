@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import { User } from '../../utils/interfaces/Project'
+import { User } from '../../utils/types/Project'
 import { IoIosArrowForward } from "react-icons/io"
 
 interface Props {

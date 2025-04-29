@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { TicketObject } from '../../utils/interfaces/Ticket'
-import { TicketCard } from './TicketCard'
+import { TicketCard as TC } from '../../utils/types/Ticket';
 import { useNavigate } from 'react-router-dom'
+import { TicketCard } from './TicketCard';
 
-interface Props {
-    items: TicketObject[];
+type Props = {
+    items: TC[];
     itemsNumber: number;
 }
 
@@ -28,7 +28,6 @@ export const TicketViewContainer: React.FC<Props> = ({ items, itemsNumber }) => 
             <div className='flex flex-wrap my-2'>
                 {itemsOnPage.map((item, index) => (
                     <TicketCard
-                        
                         key={index}
                         ticket={item}
                     />

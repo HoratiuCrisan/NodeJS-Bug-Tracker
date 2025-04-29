@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from 'react'
-import { User } from '../../utils/interfaces/User';
+import { User } from '../../utils/types/User';
 import DefaultImage from "../../Images/ProfileImage.jpg"
 
 interface ChatsNavbarProps {

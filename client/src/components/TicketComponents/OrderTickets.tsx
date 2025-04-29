@@ -1,20 +1,20 @@
 import React, {useState} from 'react'
-import {TicketObject, TicketsOrderProps} from '../../utils/interfaces/Ticket'
+import {TicketCard, TicketsOrderProps} from '../../utils/types/Ticket'
 import Select from 'react-select'
 
-export const handleTicketOrderChange = (option: string | undefined, items: TicketObject[], order: string) => {
+export const handleTicketOrderChange = (option: string | undefined, items: TicketCard[], order: string) => {
     console.log(option, order)
     if (option === undefined || option === null) {
         return items; // TODO: Implement an error card case 
     }
 
-    if (option !== 'Title' && option !== 'Deadline' && option !== 'Priority') {
+    if (option !== 'title' && option !== 'deadline' && option !== 'priority') {
         return items;
     }
 
     const ticketsSorted = [...items].sort((a, b) => {
-        const aValue = a.data[option];
-        const bValue = b.data[option];
+        const aValue = a[option];
+        const bValue = b[option];
 
         if (order === 'asc') {
             if (aValue < bValue) return -1;

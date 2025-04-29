@@ -2,7 +2,7 @@ import React from 'react'
 import { auth, googleProvider, dataBase } from '../config/firebase'
 import { signInWithPopup } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
-import {GoogleUser} from '../utils/interfaces/User'
+import {GoogleUser} from '../utils/types/User'
 import {doc, getDoc, setDoc} from 'firebase/firestore'
 import { setUserRole } from '../api/users'
 

@@ -1,11 +1,11 @@
 import React, {useState, useEffect, useContext, FormEvent, MutableRefObject} from 'react'
-import { Ticket } from '../../utils/interfaces/Ticket';
+import { Ticket } from '../../utils/types/Ticket';
 import Select from 'react-select';
 import { TextEditor } from '../TextEditor';
 import { getAllUsers } from '../../api/users';
 import { UserContext } from '../../context/UserProvider';
-import { User } from '../../utils/interfaces/User';
-import { updateTicketById } from '../../api/getTickets';
+import { User } from '../../utils/types/User';
+import { updateTicketById } from '../../api/tickets';
 import { getAuth } from 'firebase/auth';
 
 interface EditTicketDialogFormProps {
@@ -51,12 +51,12 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
     const [users, setUsers] = useState<User[]>([]);
     const [handlerOptions, setHandlerOptions] = useState<{label: string, value: string}[] >()
     const [formData, setFormData] = useState({
-        Title: ticketData ? ticketData.Title : '',
-        Description: ticketData ? ticketData.Description : '',
-        Priority: ticketData? ticketData.Priority : '',
-        Type: ticketData? ticketData.Type : '',
-        Handler: ticketData ? ticketData.Handler : '',
-        Deadline: ticketData ? ticketData.Deadline : ''
+        Title: ticketData ? ticketData.title : '',
+        Description: ticketData ? ticketData.description : '',
+        Priority: ticketData? ticketData.priority : '',
+        Type: ticketData? ticketData.type : '',
+        Handler: ticketData ? ticketData.handlerId : '',
+        Deadline: ticketData ? ticketData.deadline : ''
     });
 
     useEffect(() => {
@@ -70,7 +70,7 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
 
         if (response) {
             const users: User[] = response.users;
-            const filteredUsers = users.filter(user => user.role !== 'user' && user.displayName !== ticketData?.Author);
+            const filteredUsers = users.filter(user => user.role !== 'user' && user.displayName !== ticketData?.authorId);
             console.log(filteredUsers);
             setUsers(filteredUsers);
             setHandlerOptions(filteredUsers.map((user) => {
@@ -112,19 +112,20 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
         }
 
         const updatedTicket: Ticket = {
-            Title: formData.Title,
-            Description: formData.Description,
-            Author: ticketData.Author,
-            AuthorPicture: ticketData.AuthorPicture,
-            Status: ticketData.Status,
-            Priority: formData.Priority,
-            Type: formData.Type,
-            Response: ticketData.Response,
-            CreatedAt: ticketData.CreatedAt,
-            Handler: formData.Handler,
-            HandlerId: selectedHandler.id,
-            Files: ticketData.Files,
-            Deadline: formData.Deadline
+            id: ticketData.id,
+            title: formData.Title,
+            description: formData.Description,
+            authorId: ticketData.authorId,
+            status: ticketData.status,
+            priority: formData.Priority,
+            type: formData.Type,
+            response: ticketData.response,
+            createdAt: ticketData.createdAt,
+            closedAt: ticketData.closedAt,
+            handlerId: selectedHandler.id,
+            files: ticketData.files,
+            deadline: Date.now(),
+            notified: ticketData.notified,
         }
 
         console.log(updatedTicket);
@@ -190,7 +191,7 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
                             placeholder='Ticket handler...'
                             options={handlerOptions}
                             value={{label: formData.Handler, value: formData.Handler}}
-                            onChange={(e) => handleTicketForm("Handler", e?.label)}
+                            onChange={(e) => handleTicketForm("Handler", String(e?.label))}
                             className='my-2'
                         />
                     </label>

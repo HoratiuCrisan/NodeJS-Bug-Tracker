@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useContext} from 'react'
 import { IoExtensionPuzzleOutline } from "react-icons/io5"
 import { useNavigate } from 'react-router-dom'
 import { getProjects } from '../api/projects'
-import { Project } from '../utils/interfaces/Project'
+import { Project } from '../utils/types/Project'
 import { ProjectCard } from '../components/ProjectComponents/ProjectCard'
 import { UserContext } from '../context/UserProvider'
 

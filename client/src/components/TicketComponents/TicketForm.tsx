@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Select from 'react-select'
 import { DatePicker } from '../DatePicker'
 import { ErrorMessageCard } from '../../authentication/ErrorMessageCard'
-import { TicketFormProps} from '../../utils/interfaces/Ticket'
+import { TicketFormProps} from '../../utils/types/Ticket'
 import { selectStyles, customStyles } from '../../utils/Select-Styles'
 
 export const TicketForm: React.FC<TicketFormProps> = ({formData, formError, onSubmit, onInputChange, priority, type}) => {

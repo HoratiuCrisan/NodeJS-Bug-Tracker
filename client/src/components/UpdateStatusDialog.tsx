@@ -2,8 +2,8 @@ import React, {useState} from 'react'
 import {IoCloseOutline} from 'react-icons/io5'
 import Select from 'react-select'
 import { selectStyles, customStyles } from '../utils/Select-Styles'
-import { updateTicketById } from '../api/getTickets'
-import { Ticket } from '../utils/interfaces/Ticket'
+import { updateTicketById } from '../api/tickets'
+import { Ticket } from '../utils/types/Ticket'
 import { useNavigate } from 'react-router-dom'
 import { getAuth } from 'firebase/auth'
 
@@ -50,19 +50,20 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
             return
 
         const changedTicket: Ticket = {
-            Author: ticket.Author,
-            Title: ticket.Title,
-            AuthorPicture: ticket.AuthorPicture,
-            Description: ticket.Description,
-            Status: statusUpdateValue,
-            Priority: ticket.Priority,
-            Type: ticket.Type,
-            Handler: ticket.Handler,
-            HandlerId: ticket.HandlerId,
-            Deadline: ticket.Deadline,
-            CreatedAt: ticket.CreatedAt,
-            Response: ticket.Response,
-            Files: ticket.Files
+            id: ticket.id,
+            title: ticket.title,
+            authorId: ticket.authorId,
+            description: ticket.description,
+            deadline: ticket.deadline,
+            handlerId: ticket.handlerId,
+            createdAt: ticket.createdAt,
+            closedAt: ticket.closedAt,
+            status: ticket.status,
+            priority: ticket.priority,
+            type: ticket.type,
+            response: ticket.response,
+            files: ticket.files,
+            notified: ticket.notified,
         }
 
         const response = await updateTicketById(id, changedTicket, auth.currentUser.displayName)

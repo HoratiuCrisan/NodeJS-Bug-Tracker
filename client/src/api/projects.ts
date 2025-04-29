@@ -1,5 +1,5 @@
 import { PROJECT_END_POINT } from "./endpoint"
-import { Project } from "../utils/interfaces/Project"
+import { Project } from "../utils/types/Project"
 import axios from "axios"
 
 const getProjects = async () => {

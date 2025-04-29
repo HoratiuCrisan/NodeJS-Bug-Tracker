@@ -1,28 +1,26 @@
-import { RedisRepository } from "#/repository/redisRepository";
-import { TicketObject } from "#/utils/interfaces/Ticket";
-import { executeWithHandling } from "#/utils/throwError";
+import { RedisRepository } from "../repository/redisRepository";
+import { Ticket } from "../types/Tickets";
 
 export class RedisService {
     private _redisTicketRepository: RedisRepository;
     private _defaultTimeout: number;
+    private _CACHE_TIME: number;
 
     constructor() {
         this._redisTicketRepository = new RedisRepository();
         this._defaultTimeout = 15 * 60;
+        this._CACHE_TIME = 24 * 60 * 60;
     }
 
     /**
      * 
-     * @param {string} username The user that wants to lock the ticket 
+     * @param {string} userId The ID of the user that sent the request
      * @param {string} ticketId The ID of the ticket 
      * @returns {Promise<boolean>} True if the ticket was locked and false otherwise
      */
-    async lockTicket(username: string, ticketId: string): Promise<boolean> {
-        return await executeWithHandling(
-            /* Lock the ticket in the redis cache */
-            async () => await this._redisTicketRepository.lockTicket(username, ticketId, this._defaultTimeout),
-            `Failed to lock ticket: ${ticketId}`
-        );
+    async lockTicket(userId: string, ticketId: string): Promise<boolean> {
+        /* Send the data to the repository layer to lock the ticket */
+        return await this._redisTicketRepository.lockTicket(userId, ticketId, this._defaultTimeout);
     }
 
     /**
@@ -31,12 +29,8 @@ export class RedisService {
      * @returns {Promise<string | null>} The value of the locked data if the ticket is locked
      * and null otherwise
      */
-    async isTicketLocked(ticketId: string): Promise<string | null> {
-        return await executeWithHandling(
-            /* Check if the ticket is locked */
-            async () => await this._redisTicketRepository.isTicketLocked(ticketId),
-            `Failed to check if ticket: ${ticketId} is locked`
-        );
+    async isTicketLocked(ticketId: string): Promise<{lockedBy: string, lockedAt: number} | null> {
+        return await this._redisTicketRepository.isTicketLocked(ticketId);
     }
 
     /**
@@ -45,40 +39,45 @@ export class RedisService {
      * @returns {Promise<boolean>} True if the ticket was unlocked and false otherwise 
      */
     async unlockTicket(ticketId: string): Promise<boolean> {
-        return await executeWithHandling(
-            /* Unlock the ticket by removing it from the redis cache */
-            async () => await this._redisTicketRepository.unlockTicket(ticketId),
-            `Failed to unlock ticket: ${ticketId}`
-        );
+        return await this._redisTicketRepository.unlockTicket(ticketId);
     }
 
     /**
      * 
      * @param {string} ticketId The ID of the ticket 
-     * @param {TicketObject} ticket The data of the ticket 
-     * @param {number} timeout The time the ticket will be stored in the cache 
+     * @param {Ticket} ticket The data of the ticket 
      * @returns {Promise<boolean>} True if the ticket was cached memory and false otherwise
      */
-    async cacheTicket(ticketId: string, ticket: TicketObject, timeout: number): Promise<boolean> {
-        return await executeWithHandling(
-            /* Add the key value pair of the ticketId and ticket data to the cache */
-            async () => await this._redisTicketRepository.cacheTicket(ticket, ticketId, timeout),
-            `Failed to cache the ticket: ${ticketId}`
-        );
+    async cacheTicket(ticketId: string, ticket: Ticket): Promise<boolean> {
+        return await this._redisTicketRepository.cacheTicket(ticketId, ticket, this._CACHE_TIME);
     }
 
     /**
      * 
-     * @param {string} ticketId The ID of the ticket 
-     * @returns {Promise<string | null>} The value stored for the ticket ID 
-     * if it was found in the cache and null otherwise
+     * @param {string} ticketId The ID of the ticket
+     * @returns {Promise<Ticket | null>} The ticket data if it is cached or null otherwise
      */
-    async isTicketCached(ticketId: string): Promise<string | null> {
-        return await executeWithHandling(
-            /* Check if the ticket is cached in the redis database */
-            async () => await this._redisTicketRepository.isTicketCached(ticketId),
-            `Failed to check if the ticket: ${ticketId} is cached`
-        );
+    async isTicketCached(ticketId: string): Promise<Ticket | null> {
+        return await this._redisTicketRepository.isTicketCached(ticketId);
+    }
+
+    /**
+     * 
+     * @param {string} key The query hash key 
+     * @returns {Promise<Ticket[] | null>} The stored tickets list if the query is stored or null
+     */
+    async isQueryCached(key: string): Promise<string[] | null> {
+        return await this._redisTicketRepository.isQueryCached(key);
+    }
+
+    /**
+     * 
+     * @param {string} key The hashed query key 
+     * @param {string[]} ids The list of ticket IDs to cache
+     * @returns {Promise<string>} The hashed key
+     */
+    async cacheQuery(key: string, ids: string[]): Promise<string> {
+        return await this._redisTicketRepository.cacheQuery(key, ids, this._CACHE_TIME);
     }
 
     /**
@@ -87,10 +86,16 @@ export class RedisService {
      * @returns {Promise<boolean>} True if the ticket was removed from the cache and false otherwise
      */
     async removeTicketFromCache(ticketId: string): Promise<boolean> {
-        return await executeWithHandling(
-            /* Remove the ticket from the cache memory */
-            async () => this._redisTicketRepository.removeTicketFromCache(ticketId),
-            `Failed to remove the ticket: ${ticketId} from cache`
-        );
+        return await this._redisTicketRepository.removeTicketFromCache(ticketId);
+    }
+
+    /**
+     * 
+     * @param {string[]} keys The list of keys of tickets to cache
+     * @returns {Promise<Ticket[]>} The list of cached tickets
+     */
+    async cachedTickets(keys: string[]): Promise<Ticket[]> {
+        /* Send the data to the repository layer to cache the list of IDs */
+        return await this._redisTicketRepository.cachedTickets(keys);
     }
 }

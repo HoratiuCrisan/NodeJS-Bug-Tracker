@@ -1,16 +1,16 @@
 import React, {useState, useEffect} from 'react'
 import { FaSearch } from "react-icons/fa"
-import { TicketObject } from '../../utils/interfaces/Ticket'
+import { TicketCard } from '../../utils/types/Ticket'
 
 interface TicketsProps {
-    tickets: TicketObject[]
-    displayTickets: (tickets: TicketObject[], text: string) => void 
+    tickets: TicketCard[]
+    displayTickets: (tickets: TicketCard[], text: string) => void 
 }
 
 export const TicketSearch:React.FC<TicketsProps> = ({tickets, displayTickets}) => {
     const handleSearchChange = (text: string) => {
         
-        const filteredTickets = tickets.filter(t => t.data.Title.toLowerCase().match(text))
+        const filteredTickets = tickets.filter(t => t.title.toLowerCase().match(text))
 
         displayTickets(filteredTickets, text)
     }

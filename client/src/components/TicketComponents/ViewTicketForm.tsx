@@ -1,7 +1,7 @@
 import React from 'react'
 import {FaRegEnvelope} from 'react-icons/fa'
 import { ViewTicketContainer } from './ViewTicketFormContainer'
-import { TicketProps } from '../../utils/interfaces/Ticket'
+import { TicketProps } from '../../utils/types/Ticket'
 
 export const ViewTicketForm: React.FC<TicketProps> = ({ticket}) => {
   return (

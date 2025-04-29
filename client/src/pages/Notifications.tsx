@@ -1,5 +1,5 @@
 import React, {useEffect, useState, useContext} from 'react'
-import { Notification } from '../utils/interfaces/Notification'
+import { Notification } from '../utils/types/Notification'
 import { UserContext } from '../context/UserProvider'
 import { getAuth } from 'firebase/auth'
 import { IoMdNotificationsOutline } from "react-icons/io";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Project, Task, User } from '../../utils/interfaces/Project';
+import { Project, Task, User } from '../../utils/types/Project';
 import { getProjectById, updateProject } from '../../api/projects';
 import { ProjectMembersPanel } from './ProjectMembersPanel';
 import { CreateTaskDialog } from '../TaskComponents/CreateTaskDialog';

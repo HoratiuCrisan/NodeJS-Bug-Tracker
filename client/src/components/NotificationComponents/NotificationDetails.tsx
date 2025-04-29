@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { useParams } from 'react-router-dom'
-import { Notification } from '../../utils/interfaces/Notification';
+import { Notification } from '../../utils/types/Notification';
 import { getNotification } from '../../api/notifications';
 import { getAuth } from 'firebase/auth';
 import { UserContext } from '../../context/UserProvider';
-import { User } from '../../utils/interfaces/User';
+import { User } from '../../utils/types/User';
 import { updateUserNotification} from "../../api/notifications";
 
 export const NotificationDetails = () => {

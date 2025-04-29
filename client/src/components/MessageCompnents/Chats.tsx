@@ -1,6 +1,6 @@
 import React, {useState, useContext, useEffect} from 'react'
 import { ChatsNavbar } from './ChatsNavbar'
-import { User } from '../../utils/interfaces/User';
+import { User } from '../../utils/types/User';
 import { Conversation } from './Conversation';
 import { getAuth } from 'firebase/auth';
 import { UserContext } from '../../context/UserProvider';

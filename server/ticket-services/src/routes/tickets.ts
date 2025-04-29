@@ -1,11 +1,11 @@
-import express from 'express';
-import {verifyUserRole} from "../middleware/roleMiddleware";
-const verifyToken = require("../middleware/tokenMiddleware");
-import { TicketController } from '#/controllers/ticketController';
-import { checkRequestError } from '#/middleware/checkRequestError';
-import { RedisTicketController } from '#/controllers/redisController';
+import {Router} from 'express';
+import { verifyToken, checkRequestError, verifyUserRole } from "@bug-tracker/usermiddleware"
+import { TicketController } from "../controllers/ticketController";
+import { RedisTicketController } from '../controllers/redisController';
 
-const router = express.Router();
+const router = Router();
+
+/* POST requests */
 
 router.post(
     "/",
@@ -16,20 +16,14 @@ router.post(
 );
 
 router.post(
-    "/lock/:username/:id",
+    "/lock/:userId/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
     RedisTicketController.lockTicket,
 );
 
-router.post(
-    "/cache/:id",
-    verifyToken,
-    checkRequestError,
-    verifyUserRole(["user", "developer", "project-manager", "admin"]),
-    RedisTicketController.cacheTicket
-)
+/* GET tickets */
 
 router.get(
     "/",
@@ -40,7 +34,7 @@ router.get(
 );
 
 router.get(
-    "/:username",
+    "/:userId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
@@ -48,33 +42,25 @@ router.get(
 );
 
 router.get(
-    "/lock/:id",
-    verifyToken,
-    checkRequestError,
-    verifyUserRole(["user", "developer", "project-manager", "admin"]),
-    RedisTicketController.isTicketLocked,
-),
-
-router.get(
-    "/cache/:id",
-    verifyToken,
-    checkRequestError,
-    verifyUserRole(["user", "developer", "project-manager", "admin"]),
-    RedisTicketController.isTicketCached
-);
-
-
-
-router.get(
-    "/:username/:id",
+    "/:userId/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
     TicketController.getUserTicketById
 );
 
+router.get(
+    "/lock/:ticketId",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    RedisTicketController.isTicketLocked,
+);
+
+/* PUT requests */
+
 router.put(
-    "/:id",
+    "/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
@@ -82,15 +68,17 @@ router.put(
 );
 
 router.put(
-    "/assign/:id",
+    "/assign/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["admin"]),
     TicketController.assignTicket,
 );
 
+/* DELETE requests */
+
 router.delete(
-    "/:username/:id",
+    "/:userId/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
@@ -98,20 +86,11 @@ router.delete(
 );
 
 router.delete(
-    "/lock/:id",
+    "/lock/:ticketId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["admin"]),
     RedisTicketController.unlockTicket,
 );
-
-router.delete(
-    "/cache/:id",
-    verifyToken,
-    checkRequestError,
-    verifyUserRole(["user", "developer", "project-manager", "admin"]),
-    RedisTicketController.removeTicketFromCache,
-);
-
 
 export default router;

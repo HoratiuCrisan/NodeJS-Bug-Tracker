@@ -1,0 +1,1 @@
+export {UserProducer} from "./service/userProducer";

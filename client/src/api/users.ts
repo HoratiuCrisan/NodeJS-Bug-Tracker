@@ -4,13 +4,16 @@ import { PROJECT_END_POINT, USERS_END_POINT } from "./endpoint"
 const getUserData = async (userId: string) => {
     if (!userId || userId.length === 0) {
         throw new Error (`User ${userId} is not a valid user`);
-    }
+    }   
+
+    console.log("user data hereeeeeeeeeee")
 
     try {
         const response = await axios.get(`${USERS_END_POINT}/${userId}`);
 
         if (response) {
-            return response.data;
+            console.log(response.data.data);
+            return response.data.data;
         }
     } catch (error) {
         console.error(error);
@@ -24,7 +27,7 @@ const getUsers = async () => {
     if (!response )
         return null
 
-    return response.data
+    return response.data.data
     } catch (err) {
         console.error(err)
     }
@@ -58,7 +61,7 @@ const getAllUsers = async () => {
         const response = await axios.get(`${USERS_END_POINT}`);
 
         if (response) {
-            return response.data;
+            return response.data.data;
         }
 
         return null

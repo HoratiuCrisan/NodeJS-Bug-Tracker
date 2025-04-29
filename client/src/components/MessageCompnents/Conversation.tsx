@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useContext, useRef} from 'react';
 import { getUserConversations, createConversation } from '../../api/messages/chats';
-import { Message } from '../../utils/interfaces/Chat';
+import { Message } from '../../utils/types/Chat';
 import { getAuth } from 'firebase/auth';
 import {io} from "socket.io-client"
 import '../../styles/Scrollbar.css';

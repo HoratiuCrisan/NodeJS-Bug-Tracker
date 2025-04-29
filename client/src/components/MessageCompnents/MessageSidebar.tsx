@@ -1,6 +1,6 @@
 import React, {useEffect, useState, useContext} from 'react'
 import {getAllUsersForChats} from "../../api/messages/users"
-import {User} from "../../utils/interfaces/User"
+import {User} from "../../utils/types/User"
 import { getAuth } from 'firebase/auth'
 import { UserContext } from '../../context/UserProvider'
 import { MessageNavbar } from './MessageNavbar'

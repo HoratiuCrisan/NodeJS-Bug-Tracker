@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import { deleteTicketById } from '../api/getTickets'
+import { deleteTicketById } from '../api/tickets'
 import {IoCloseOutline} from 'react-icons/io5'
 import { useNavigate } from 'react-router-dom'
 

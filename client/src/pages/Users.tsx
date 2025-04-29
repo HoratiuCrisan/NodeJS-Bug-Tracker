@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react'
 import { getAllUsers } from '../api/users'
-import { User } from '../utils/interfaces/User'
+import { User } from '../utils/types/User'
 import UserTable from '../components/UserComponents/UserTable';
 import Select, { SingleValue } from 'react-select';
 import convertTimestampToDate from '../utils/TimestampToDate';

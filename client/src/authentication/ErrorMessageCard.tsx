@@ -1,5 +1,5 @@
 import React from 'react'
-import { ErrorMessageCards } from '../utils/interfaces/Error'
+import { ErrorMessageCards } from '../utils/types/Error'
 
 /**
  * Responsible from rendering the error message
