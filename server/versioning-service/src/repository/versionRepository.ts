@@ -1,4 +1,4 @@
-import admin from "../config/firebase";
+import admin from "../../config/firebase";
 import { Version } from "../types/general";
 import { AppError, executeWithHandling } from "@bug-tracker/usermiddleware";
 import env from "dotenv";

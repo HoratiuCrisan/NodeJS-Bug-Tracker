@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -10,33 +11,39 @@ import (
 )
 
 func main() {
+	// Initalize the .env data
 	if err := utils.LoadEnv(); err != nil {
 		log.Fatal(err)
 	}
 
-	userProducer, err := rabbitmq.NewUserProducer(utils.EnvInstances.RABBITMQ_URL, "users")
+	// Initialize a new rabbitMq user producer
+	userProducer, err := rabbitmq.NewUserProducer(utils.EnvInstances.RABBITMQ_USERS)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	logProducer, err := rabbitmq.NewProjectProducer("logger")
+	// Initialize a new rabbitMq logger producer
+	logProducer, err := rabbitmq.NewProjectProducer(utils.EnvInstances.RABBITMQ_LOGGER)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	notificationProducer, err := rabbitmq.NewProjectProducer("notifications")
+	// Initialize a new rabbitMq notification producer
+	notificationProducer, err := rabbitmq.NewProjectProducer(utils.EnvInstances.RABBITMQ_NOTIFICATIONS)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Initalize the chi router
+	// Pass the rabbitMq producers to have access to them from the controllers
 	router, err := router.NewRouter(userProducer, logProducer, notificationProducer)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := http.ListenAndServe(":8009", router); err != nil {
+	// Listen to the port
+	log.Printf("Listening to port %s\n", utils.EnvInstances.PORT)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", utils.EnvInstances.PORT), router); err != nil {
 		log.Fatal(err)
 	}
-
-	log.Printf("Listening to port 8009")
 }
