@@ -3,26 +3,26 @@ package rabbitmq
 import (
 	"encoding/json"
 
-	"github.com/horatiucrisan/project-service/utils"
+	"github.com/horatiucrisan/task-service/utils"
 	"github.com/streadway/amqp"
 )
 
-type ProjectProducer struct {
+type TaskProducer struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	queue   string
 }
 
-// NewProjectProducer function retrieves the name of the queue, and generates a new rabbitMq producer
+// NewTaskProducer retrieves the name of the queue, and generates a new rabbitMq producer
 //
 // Parameters:
 //   - queue: The name of the rabbitMq queue
 //
 // Returns:
-//   - *ProjectProducer: The new rabbitMq producer
+//   - *TaskProducer: The new rabbitMq producer
 //   - error: An error that occured during the process
-func NewProjectProducer(queue string) (*ProjectProducer, error) {
-	// Estalish the connection to rabbitMq
+func NewTaskProducer(queue string) (*TaskProducer, error) {
+	// Establish the connection to rabbitMq
 	conn, err := amqp.Dial(utils.EnvInstances.RABBITMQ_URL)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewProjectProducer(queue string) (*ProjectProducer, error) {
 	}
 
 	// Return the producer data
-	return &ProjectProducer{conn, ch, queue}, nil
+	return &TaskProducer{conn, ch, queue}, nil
 }
 
 // SendMessage retrieves the message data and sends it to the rabbitMq consumer
@@ -58,7 +58,7 @@ func NewProjectProducer(queue string) (*ProjectProducer, error) {
 //
 // Returns:
 //   - error: An error that occured during the process
-func (p *ProjectProducer) SendMessage(message any) error {
+func (t *TaskProducer) SendMessage(message any) error {
 	// Encode the data into the JSON format
 	body, err := json.Marshal(message)
 	if err != nil {
@@ -66,9 +66,9 @@ func (p *ProjectProducer) SendMessage(message any) error {
 	}
 
 	// Publish the message to the rabbitMq consumer
-	return p.channel.Publish(
+	return t.channel.Publish(
 		"",
-		p.queue,
+		t.queue,
 		false,
 		false,
 		amqp.Publishing{

@@ -25,7 +25,8 @@ type TaskRepository interface {
 	UpdateSubtaskStatus(ctx context.Context, taskId string, subtaskId string, subtaskStatus bool) (model.Subtask, error)
 	UpdateResponseMessage(ctx context.Context, taskId string, responseId string, message string) (model.Response, error)
 
-	DeleteTaskById(ctx context.Context, taskId string) (string, error)
-	DeleteSubtaskById(ctx context.Context, taskId string, subtaskId string) (string, error)
-	DeleteResponseById(ctx context.Context, taskId string, responseId string) (string, error)
+	DeleteTaskById(ctx context.Context, taskId string) (model.Task, error)
+	DeleteSubtaskById(ctx context.Context, taskId string, subtaskId string) (model.Subtask, error)
+	DeleteResponseById(ctx context.Context, taskId string, responseId string) (model.Response, error)
+	DeleteTaskSubcollections(ctx context.Context, taskId string, batchSize int) (string, error)
 }

@@ -13,40 +13,71 @@ import (
 	"github.com/horatiucrisan/task-service/rabbitmq"
 	"github.com/horatiucrisan/task-service/repository"
 	"github.com/horatiucrisan/task-service/service"
+	"github.com/horatiucrisan/task-service/utils"
 )
 
-func NewRouter(userProducer *rabbitmq.UserProducer) (http.Handler, error) {
+// NewRouter uses Chi framework in order to generate the go task-service router
+//
+// Parameters:
+//   - userProducer: The rabbitMq user producer
+//   - logProducer: The rabbitMq log producer
+//   - notificationProducer: The rabbitmq notification producer
+//   - versionProducer: The rabbitMq version producer
+//
+// Returns:
+//   - http.Handler: The http request handler
+//   - error: An error that occured during the process
+func NewRouter(userProducer *rabbitmq.UserProducer, loggerProducer, notificationProducer, versionProducer *rabbitmq.TaskProducer) (http.Handler, error) {
+	// Generae a new chi router
 	r := chi.NewRouter()
 
-	// Initialize firebase
+	// Initialize the router context
 	ctx := context.Background()
+
+	// Initialize the firebase clients
 	firebaseClient, authClient, err := firebase.NewFirebaseClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
+	// Initialize the repository layer
 	taskRepo := repository.NewTaskRepository(firebaseClient)
-	taskService := service.NewTaskService(taskRepo)
-	taskController := controller.NewTaskController(taskService, userProducer)
 
+	// Initialize the service layer
+	taskService := service.NewTaskService(taskRepo)
+
+	// Initialize the controller layer
+	taskController := controller.NewTaskController(taskService, userProducer, loggerProducer, notificationProducer, versionProducer)
+
+	// Initialize the routes
 	taskRoutes(r, authClient, taskController)
 
 	return r, nil
 }
 
+// taskRoutes initializes the request routes available
+//
+// Parameters:
+//   - r: The go chi router
+//   - authClient: The firestore authentication client
+//   - taskController: The controller layer object
 func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces.TaskController) {
-	r.Route("/api/tasks", func(r chi.Router) {
+	r.Route(utils.EnvInstances.ROUTE, func(r chi.Router) {
+		// Use the user token validation method
 		r.Use(middleware.AuthMiddleware(authClient))
 
+		// POST routes
 		r.Post("/", taskController.CreateTask)
 		r.Post("/{taskId}", taskController.CreateSubtask)
 		r.Post("/{taskId}/response", taskController.CreateTaskResponse)
 
+		// GET routes
 		r.Get("/{projectId}", taskController.GetTasks)
 		r.Get("/{projectId}/{taskId}", taskController.GetTaskById)
 		r.Get("/{taskId}/subtasks", taskController.GetSubtasks)
 		r.Get("/{taskId}/responses", taskController.GetResponses)
 
+		// PUT routes
 		r.Put("/{taskId}/description", taskController.UpdateTaskDescription)
 		r.Put("/{taskId}/status", taskController.UpdateTaskStatus)
 		r.Put("/{taskId}/addHandlers", taskController.AddTaskHandlers)
@@ -56,6 +87,7 @@ func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces
 		r.Put("/{taskId}/{subtaskId}/status", taskController.UpdateSubtaskStatus)
 		r.Put("/{taskId}/response/{responseId}", taskController.UpdateResponseMessage)
 
+		// DELETE routes
 		r.Delete("/{taskId}", taskController.DeleteTaskById)
 		r.Delete("/{taskId}/{subtaskId}", taskController.DeleteSubtaskById)
 		r.Delete("/{taskId}/{responseId}", taskController.DeleteResponseById)

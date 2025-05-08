@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/horatiucrisan/task-service/model"
+	"github.com/horatiucrisan/task-service/utils"
 	"github.com/streadway/amqp"
 )
 
@@ -18,17 +19,29 @@ type UserProducer struct {
 	queue      string
 }
 
-func NewUserProducer(rabbitmqURL, queue string) (*UserProducer, error) {
-	conn, err := amqp.Dial(rabbitmqURL)
+// NewUserProducer retrieves the queue name and generates a new rabbitMq producer
+// that connects to the rabbitMq users consumer
+//
+// Parameters:
+//   - queue: The name of the rabbitMq queue
+//
+// Returns:
+//   - *UserProducer: The new rabbitMq producer
+//   - error: An error that occured during the process
+func NewUserProducer(queue string) (*UserProducer, error) {
+	// Connect the producer to the rabbitmq URL
+	conn, err := amqp.Dial(utils.EnvInstances.RABBITMQ_URL)
 	if err != nil {
 		return nil, err
 	}
 
+	// Generate a new channel
 	ch, err := conn.Channel()
 	if err != nil {
 		return nil, err
 	}
 
+	// Generate a new rabbitMq queue
 	replyQueue, err := ch.QueueDeclare(
 		"",
 		false,
@@ -42,6 +55,7 @@ func NewUserProducer(rabbitmqURL, queue string) (*UserProducer, error) {
 		return nil, err
 	}
 
+	// Return the producer data
 	return &UserProducer{
 		conn:       conn,
 		channel:    ch,
@@ -50,87 +64,105 @@ func NewUserProducer(rabbitmqURL, queue string) (*UserProducer, error) {
 	}, nil
 }
 
+// GetUsers method retrieves the user producer and sends a list of user IDs to the consumer
+// and retreives the data of each user
+//
+// Parameters:
+//   - userIds: The list of user IDs
+//
+// Returns:
+//   - []model.User: The list of users data
+//   - error: An error that occured during the process
 func (p *UserProducer) GetUsers(userIds []string) ([]model.User, error) {
-	// Declare a temporary queue for receiving the response
+	// Generate a new rabbitMq queue
 	replyQueue, err := p.channel.QueueDeclare(
-		"",    // Let RabbitMQ generate a unique queue name
-		false, // Non-durable
-		true,  // Auto-delete when no consumers are connected
-		true,  // Exclusive (only this connection can consume it)
-		false, // No-wait
-		nil,   // Arguments
+		"",
+		false,
+		true,
+		true,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Generate a unique correlation ID for this request-response cycle
+	// Generate a new correlation ID of the reply queue
 	correlationId := uuid.New().String()
 
-	// Marshal user IDs into the body of the message
+	// Encode the users list into the JSON format
 	body, err := json.Marshal(userIds)
 	if err != nil {
 		return nil, err
 	}
 
-	// Send the request to the user service
+	// Send the data to the rabbitMq users consumer
 	err = p.channel.Publish(
-		"",      // Default exchange
-		p.queue, // User service queue name (replace with actual user service queue)
-		false,   // Mandatory flag
-		false,   // Immediate flag
+		"",
+		p.queue,
+		false,
+		false,
 		amqp.Publishing{
 			ContentType:   "application/json",
-			CorrelationId: correlationId,   // Unique correlation ID for matching response
-			ReplyTo:       replyQueue.Name, // Set replyTo to the temporary queue name
-			Body:          body,            // Body contains the userIds
+			CorrelationId: correlationId,
+			ReplyTo:       replyQueue.Name,
+			Body:          body,
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Consume messages from the temporary reply queue
+	// Retreive the users data from the consumer
 	msgs, err := p.channel.Consume(
-		replyQueue.Name, // Name of the temporary queue to receive responses
+		replyQueue.Name,
 		"",
-		true,  // Auto-acknowledge messages
-		true,  // Exclusive consumer
-		false, // No-local
-		false, // No-wait
-		nil,   // Arguments
+		true,
+		true,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Set up a context with a timeout to avoid waiting forever for a response
+	// Timeout to reveive the data
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// Wait for the response and match the correlation ID
 	for {
 		select {
+		// case for receiving the response message
 		case msg := <-msgs:
+			// check if the correlation ID is the same as the one from the producer
 			if correlationId == msg.CorrelationId {
 				var users []model.User
+				// decode the data from the message into the users list
 				err := json.Unmarshal(msg.Body, &users)
 				if err != nil {
 					return nil, err
 				}
-				return users, nil // Return the list of users from the response
+				return users, nil
 			}
+		// timeout error message for not receiving the message
 		case <-ctx.Done():
 			return nil, fmt.Errorf("timeout waiting for user service response")
 		}
 	}
 }
 
+// Close function ends the producer connection to rabbitMq
+//
+// Returns:
+//   - error: An error that occured during the process
 func (p *UserProducer) Close() error {
+	// Close the channel
 	if err := p.channel.Close(); err != nil {
 		return err
 	}
 
+	// Close the connection
 	if err := p.conn.Close(); err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -10,23 +11,45 @@ import (
 )
 
 func main() {
-	utils.LoadEnv()
+	// Initialize the .env data
+	if err := utils.LoadEnv(); err != nil {
+		log.Fatal(err)
+	}
 
-	userProducer, err := rabbitmq.NewUserProducer(utils.EnvInstances.RABBITMQ_URL, "users")
+	// Initialize a new rabbitMq user producer
+	userProducer, err := rabbitmq.NewUserProducer(utils.EnvInstances.RABBITMQ_USERS)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer userProducer.Close()
+	// Initialize a new rabbitMq log producer
+	loggerProducer, err := rabbitmq.NewTaskProducer(utils.EnvInstances.RABBITMQ_LOGGER)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	router, err := router.NewRouter(userProducer)
+	// Initialize a new rabbitMq notification producer
+	notificationProducer, err := rabbitmq.NewTaskProducer(utils.EnvInstances.RABBITMQ_NOTIFICATIONS)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Initialize a new rabbitMq version produer
+	versionProducer, err := rabbitmq.NewTaskProducer(utils.EnvInstances.RABBITMQ_VERSIONS)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Initialize the chi router
+	// Pass the rabbitMq producers to have access to them from the controllers
+	router, err := router.NewRouter(userProducer, loggerProducer, notificationProducer, versionProducer)
 	if err != nil {
 		log.Fatalf("Failed to initialize router: %v", err)
 	}
 
-	if err := http.ListenAndServe(":8008", router); err != nil {
+	// Listen to the server port
+	log.Printf("Listening to port %s", utils.EnvInstances.PORT)
+	if err := http.ListenAndServe(fmt.Sprintf(":%s", utils.EnvInstances.PORT), router); err != nil {
 		log.Fatal(err)
 	}
-
-	log.Println("Listening to port 8008")
 }
