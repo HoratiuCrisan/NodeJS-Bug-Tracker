@@ -76,6 +76,8 @@ func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces
 		r.Get("/{projectId}/{taskId}", taskController.GetTaskById)
 		r.Get("/{taskId}/subtasks", taskController.GetSubtasks)
 		r.Get("/{taskId}/responses", taskController.GetResponses)
+		r.Get("/{taskId}/subtasks/{subtaskId}", taskController.GetSubtaskById)
+		r.Get("/{taskId}/responses/{responseId}", taskController.GetResponseById)
 
 		// PUT routes
 		r.Put("/{taskId}/description", taskController.UpdateTaskDescription)
@@ -86,6 +88,8 @@ func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces
 		r.Put("/{taskId}/{subtaskId}/handler", taskController.UpdateSubtaskHandler)
 		r.Put("/{taskId}/{subtaskId}/status", taskController.UpdateSubtaskStatus)
 		r.Put("/{taskId}/response/{responseId}", taskController.UpdateResponseMessage)
+		r.Put("/{taskId}/rollback/", taskController.RerollTaskVersion)
+		r.Put("/{taskId}/rollback/{subtaskId}", taskController.RerollSubtaskVersion)
 
 		// DELETE routes
 		r.Delete("/{taskId}", taskController.DeleteTaskById)

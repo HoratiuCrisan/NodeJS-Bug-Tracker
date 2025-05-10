@@ -345,108 +345,6 @@ func (c *taskController) GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (c *taskController) GetSubtasks(w http.ResponseWriter, r *http.Request) {
-	// Get the user data from the user token
-	user, err := middleware.GetUserFromContext(r.Context())
-	if err != nil {
-		http.Error(w, "Unauthorized user", http.StatusUnauthorized)
-		return
-	}
-
-	// Generate the request schema
-	inputData := schemas.GetSubtasksSchema{
-		UserID: user.UID,
-		TaskID: chi.URLParam(r, "taskId"),
-	}
-
-	// Validate the input data
-	if err = utils.ValidateParams(inputData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Send the data to the service layer to retrieve the subtasks
-	subtasks, duration, err := utils.MeasureTime("Get-Subtasks", func() ([]model.Subtask, error) {
-		return c.taskService.GetSubtasks(r.Context(), inputData.TaskID)
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Generate the log data
-	if err = rabbitmq.GenerateLogData(
-		w,
-		r,
-		c.loggerProducer,
-		fmt.Sprintf("User `%s` retrieved the subtasks for the task `%s`", inputData.UserID, inputData.TaskID),
-		"info",
-		http.StatusAccepted,
-		duration,
-		subtasks,
-	); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Encode the data and return it
-	if err = utils.EncodeData(w, r, subtasks); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-func (c *taskController) GetResponses(w http.ResponseWriter, r *http.Request) {
-	// Get the user data from the user token
-	user, err := middleware.GetUserFromContext(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	// Generate the request schema
-	inputData := schemas.GetResponsesSchema{
-		UserID: user.UID,
-		TaskID: chi.URLParam(r, "taskId"),
-	}
-
-	// Validate the input data
-	if err = utils.ValidateParams(inputData); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Send the data to the service layer to retrieve the responses of the task
-	responses, duration, err := utils.MeasureTime("Get-Responses", func() ([]model.Response, error) {
-		return c.taskService.GetResponses(r.Context(), inputData.TaskID)
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Generate the log data
-	if err = rabbitmq.GenerateLogData(
-		w,
-		r,
-		c.loggerProducer,
-		fmt.Sprintf("User `%s` retrieved the responses for the task `%s`", inputData.UserID, inputData.TaskID),
-		"info",
-		http.StatusAccepted,
-		duration,
-		responses,
-	); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Encode the data and return it
-	if err = utils.EncodeData(w, r, responses); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
 func (c *taskController) GetTaskById(w http.ResponseWriter, r *http.Request) {
 	// Get the user data from the user token
 	user, err := middleware.GetUserFromContext(r.Context())
@@ -509,6 +407,214 @@ func (c *taskController) GetTaskById(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+func (c *taskController) GetSubtasks(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, "Unauthorized user", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the request schema
+	inputData := schemas.GetSubtasksSchema{
+		UserID: user.UID,
+		TaskID: chi.URLParam(r, "taskId"),
+	}
+
+	// Validate the input data
+	if err = utils.ValidateParams(inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to retrieve the subtasks
+	subtasks, duration, err := utils.MeasureTime("Get-Subtasks", func() ([]model.Subtask, error) {
+		return c.taskService.GetSubtasks(r.Context(), inputData.TaskID)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` retrieved the subtasks for the task `%s`", inputData.UserID, inputData.TaskID),
+		"info",
+		http.StatusAccepted,
+		duration,
+		subtasks,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, subtasks); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *taskController) GetSubtaskById(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the input data request schema
+	inputData := schemas.GetSubtaskByIdSchema{
+		UserID:    user.UID,
+		TaskID:    chi.URLParam(r, "taskId"),
+		SubtaskID: chi.URLParam(r, "subtaskId"),
+	}
+
+	// Validate the input data
+	if err = utils.ValidateParams(inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to retrieve the data of the subtask
+	subtask, duration, err := utils.MeasureTime("Get-SubtaskById", func() (model.Subtask, error) {
+		return c.taskService.GetSubtaskById(r.Context(), inputData.TaskID, inputData.SubtaskID)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` retrieved the data of the subtask `%s` of the task `%s`", inputData.UserID, inputData.SubtaskID, inputData.TaskID),
+		"info",
+		http.StatusAccepted,
+		duration,
+		subtask,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, subtask); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+}
+
+func (c *taskController) GetResponses(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the request schema
+	inputData := schemas.GetResponsesSchema{
+		UserID: user.UID,
+		TaskID: chi.URLParam(r, "taskId"),
+	}
+
+	// Validate the input data
+	if err = utils.ValidateParams(inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to retrieve the responses of the task
+	responses, duration, err := utils.MeasureTime("Get-Responses", func() ([]model.Response, error) {
+		return c.taskService.GetResponses(r.Context(), inputData.TaskID)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` retrieved the responses for the task `%s`", inputData.UserID, inputData.TaskID),
+		"info",
+		http.StatusAccepted,
+		duration,
+		responses,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, responses); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *taskController) GetResponseById(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the input data request schema
+	inputData := schemas.GetResponseByIdSchema{
+		UserID:     user.UID,
+		TaskID:     chi.URLParam(r, "taskId"),
+		ResponseID: chi.URLParam(r, "responseId"),
+	}
+
+	// Validate the input data
+	if err = utils.ValidateParams(inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to retrieve the data of the response
+	response, duration, err := utils.MeasureTime("Get-ResponseById", func() (model.Response, error) {
+		return c.taskService.GetResponseById(r.Context(), inputData.TaskID, inputData.ResponseID)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` retrieved the data of the response `%s` of the task `%s`", inputData.UserID, inputData.ResponseID, inputData.TaskID),
+		"info",
+		http.StatusAccepted,
+		duration,
+		response,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }
 
 // PUT methods
@@ -1157,6 +1263,193 @@ func (c *taskController) UpdateResponseMessage(w http.ResponseWriter, r *http.Re
 	}
 }
 
+func (c *taskController) RerollTaskVersion(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the request schema
+	inputData := schemas.RerollTaskVersion{
+		UserID: user.UID,
+		TaskID: chi.URLParam(r, "taskId"),
+	}
+
+	// Validate the input data and the request body data
+	if err = utils.ValidateBody(r, &inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get the current task data
+	currentTask, err := c.taskService.GetTaskById(r.Context(), inputData.TaskID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to roll back the task version
+	task, duration, err := utils.MeasureTime("Reroll-Task-Version", func() (model.Task, error) {
+		return c.taskService.RerollTaskVersion(r.Context(), inputData.TaskID, inputData.Task)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` rolled back the task to the version `%d`", inputData.UserID, inputData.Version),
+		"audit",
+		http.StatusCreated,
+		duration,
+		task,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the handlers of the project are different
+	removedHandlers, addedHandlers, err := rabbitmq.CheckTaskHandlers(currentTask.HandlerIDs, task.HandlerIDs, *c.userProducer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var notificationUsers []model.NotificationUser
+
+	// Iterate over the removed task handlers and generate notification messages for each user
+	for _, removedHandler := range removedHandlers {
+		notificationUser := model.NotificationUser{
+			UserID:  removedHandler.ID,
+			Email:   removedHandler.Email,
+			Message: fmt.Sprintf("You have been removed from the task `%s`", currentTask.Description),
+		}
+
+		notificationUsers = append(notificationUsers, notificationUser)
+	}
+
+	// Iterate over the added task handlers and generate notification messages for each user
+	for _, addedaddedHandler := range addedHandlers {
+		notificationUser := model.NotificationUser{
+			UserID:  addedaddedHandler.ID,
+			Email:   addedaddedHandler.Email,
+			Message: fmt.Sprintf("You have been assigned a new task: `%s`", task.Description),
+		}
+
+		notificationUsers = append(notificationUsers, notificationUser)
+	}
+
+	// Send the notification data
+	err = rabbitmq.GenerateNotificationData(c.notificationProducer, notificationUsers, "email", nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, task); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (c *taskController) RerollSubtaskVersion(w http.ResponseWriter, r *http.Request) {
+	// Get the user data from the user token
+	user, err := middleware.GetUserFromContext(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Generate the request schema
+	inputData := schemas.RerollSubtaskVersion{
+		UserID:    user.UID,
+		TaskID:    chi.URLParam(r, "taskId"),
+		SubtaskID: chi.URLParam(r, "subtaskId"),
+	}
+
+	// Validate the input data and the request body data
+	if err = utils.ValidateBody(r, &inputData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get the current subtask
+	currentSubtask, err := c.taskService.GetSubtaskById(r.Context(), inputData.TaskID, inputData.SubtaskID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the data to the service layer to roll back the task version
+	subtask, duration, err := utils.MeasureTime("Reroll-Subtask-Version", func() (model.Subtask, error) {
+		return c.taskService.RerollSubtaskVersion(r.Context(), inputData.TaskID, inputData.SubtaskID, inputData.Subtask)
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate the log data
+	if err = rabbitmq.GenerateLogData(
+		w,
+		r,
+		c.loggerProducer,
+		fmt.Sprintf("User `%s` rolled back the subtask to the version `%d`", inputData.UserID, inputData.Version),
+		"audit",
+		http.StatusCreated,
+		duration,
+		subtask,
+	); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the handler is different
+	currentHandler, oldHandler, err := rabbitmq.CheckSubtaskHandler(currentSubtask.HandlerID, subtask.HandlerID, *c.userProducer)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the handlers are different
+	if currentHandler != nil && oldHandler != nil {
+		// Generate the users notifications
+		var notificationUsers []model.NotificationUser
+		notificationUsers = append(notificationUsers, model.NotificationUser{
+			UserID:  currentHandler.ID,
+			Email:   currentHandler.Email,
+			Message: fmt.Sprintf("You are not longer the handler for the subtask `%s`", currentSubtask.Description),
+		})
+
+		notificationUsers = append(notificationUsers, model.NotificationUser{
+			UserID:  oldHandler.ID,
+			Email:   oldHandler.Email,
+			Message: fmt.Sprintf("You were assigned the subtask `%s`", subtask.Description),
+		})
+
+		// Notify the users
+		err := rabbitmq.GenerateNotificationData(c.notificationProducer, notificationUsers, "email", subtask)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Encode the data and return it
+	if err = utils.EncodeData(w, r, subtask); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+// DELETE methods
 func (c *taskController) DeleteTaskById(w http.ResponseWriter, r *http.Request) {
 	// Get the user data from the user token
 	user, err := middleware.GetUserFromContext(r.Context())

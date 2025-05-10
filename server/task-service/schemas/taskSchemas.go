@@ -1,5 +1,7 @@
 package schemas
 
+import "github.com/horatiucrisan/task-service/model"
+
 type CreateTaskSchema struct {
 	AuthorID    string   `validate:"required"`
 	ProjectID   string   `validate:"required"`
@@ -37,9 +39,21 @@ type GetSubtasksSchema struct {
 	TaskID string `validate:"required"`
 }
 
+type GetSubtaskByIdSchema struct {
+	UserID    string `validate:"required"`
+	TaskID    string `validate:"required"`
+	SubtaskID string `vaidate:"required"`
+}
+
 type GetResponsesSchema struct {
 	UserID string `validate:"required"`
 	TaskID string `validate:"required"`
+}
+
+type GetResponseByIdSchema struct {
+	UserID     string `validate:"required"`
+	TaskID     string `validate:"required"`
+	ResponseID string `validate:"required"`
 }
 
 type GetTaskByIdSchema struct {
@@ -97,6 +111,21 @@ type UpdateResponseMessageSchema struct {
 	TaskID     string `validate:"required"`
 	ResponseID string `validate:"required"`
 	Message    string `validate:"required"`
+}
+
+type RerollTaskVersion struct {
+	UserID  string     `validate:"required"`
+	TaskID  string     `validate:"required"`
+	Version int        `validate:"required"`
+	Task    model.Task `validate:"required"`
+}
+
+type RerollSubtaskVersion struct {
+	UserID    string        `validate:"required"`
+	TaskID    string        `validate:"required"`
+	SubtaskID string        `validate:"required"`
+	Version   int           `validate:"required"`
+	Subtask   model.Subtask `validate:"required"`
 }
 
 type DeleteTaskByIdSchema struct {

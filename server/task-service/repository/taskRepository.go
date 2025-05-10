@@ -214,6 +214,40 @@ func (r *taskRepository) GetSubtasks(ctx context.Context, taskId string) ([]mode
 	return subtasks, nil
 }
 
+// GetSubtaskById retrieves the data from the service layer and returns the data of the subtask
+//
+// Parameters:
+//   - ctx: Request-scoped context
+//   - taskId: The ID of the task the subtask is part of
+//   - subtaskId: The ID of the subtask
+//
+// Returns:
+//   - model.Subtask: The data of the subtask
+//   - error: An error that occured during the process
+func (r *taskRepository) GetSubtaskById(ctx context.Context, taskId, subtaskId string) (model.Subtask, error) {
+	// Get the subtask document reference
+	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
+
+	// Get the document snapshot
+	docSnapshot, err := docRef.Get(ctx)
+	if err != nil {
+		// Check if the subtask exists
+		if status.Code(err) == codes.NotFound {
+			return model.Subtask{}, fmt.Errorf("Subtask with ID `%s` not found", subtaskId)
+		}
+
+		return model.Subtask{}, err
+	}
+
+	// Add the snapshot data to the subtask object
+	var subtask model.Subtask
+	if err = docSnapshot.DataTo(&subtask); err != nil {
+		return model.Subtask{}, err
+	}
+
+	return subtask, nil
+}
+
 // GetResponses retrieves the data from the service layer and returns the list of task responses
 //
 // Parameters:
@@ -248,6 +282,40 @@ func (r *taskRepository) GetResponses(ctx context.Context, taskId string) ([]mod
 	}
 
 	return responses, nil
+}
+
+// GetResponseById retrieves the data from the service layer and returns the data of the response
+//
+// Parameters:
+//   - ctx: Request-scoped context
+//   - taskId: The ID of the task the response is part of
+//   - responseId: The ID of the response
+//
+// Returns:
+//   - model.Response: The data of the response
+//   - error: An error that occured during the process
+func (r *taskRepository) GetResponseById(ctx context.Context, taskId, responseId string) (model.Response, error) {
+	// Get the response document reference
+	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(responseId)
+
+	// Get the document snapshot
+	docSnapshot, err := docRef.Get(ctx)
+	if err != nil {
+		// Check if the document exists
+		if status.Code(err) == codes.NotFound {
+			return model.Response{}, fmt.Errorf("response with ID `%s` not found", responseId)
+		}
+
+		return model.Response{}, err
+	}
+
+	// Add the document data into the response object
+	var response model.Response
+	if err = docSnapshot.DataTo(&response); err != nil {
+		return model.Response{}, err
+	}
+
+	return response, nil
 }
 
 // UpdateTaskDescription retrieves the data from the service layer and updates the description of the task
@@ -605,6 +673,73 @@ func (r *taskRepository) UpdateResponseMessage(ctx context.Context, taskId strin
 
 	return response, nil
 
+}
+
+// RerollTaskVersion retrieves the data from the service layer and updates the data of a task to an older version
+//
+// Parameters:
+//   - ctx: Request-scoped context
+//   - taskId: The ID of the task
+//   - task: An old task version
+//
+// Returns:
+//   - model.Task: The updated task version
+//   - error: An error that occured during the process
+func (r *taskRepository) RerollTaskVersion(ctx context.Context, taskId string, task model.Task) (model.Task, error) {
+	// Get the task document reference
+	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
+
+	// Get the document snapshot
+	_, err := docRef.Get(ctx)
+	if err != nil {
+		// Check if the document exists
+		if status.Code(err) == codes.NotFound {
+			return model.Task{}, fmt.Errorf("task with ID `%s` not found", taskId)
+		}
+		return model.Task{}, err
+	}
+
+	// Reroll the task version to a previous one
+	_, err = docRef.Set(ctx, task)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	return task, nil
+}
+
+// RerollSubtaskVersion retrieves the data from the service layer and updates a subtask of a task to an older version
+//
+// Parameters:
+//   - ctx: Reqeust-scoped context
+//   - taskId: The ID of the task the subtask is part of
+//   - subtaskId: The ID of the subtask
+//   - subtask: The old subtask version
+//
+// Returns:
+//   - model.Subtask: The updated subtask version
+//   - error: An error that occured during the process
+func (r *taskRepository) RerollSubtaskVersion(ctx context.Context, taskId, subtaskId string, subtask model.Subtask) (model.Subtask, error) {
+	// Get the subtask document reference
+	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
+
+	// Get the document snapshot
+	_, err := docRef.Get(ctx)
+	if err != nil {
+		// Check if the subtask exists
+		if status.Code(err) == codes.NotFound {
+			return model.Subtask{}, fmt.Errorf("subtask with ID `%s` not found", subtaskId)
+		}
+		return model.Subtask{}, err
+	}
+
+	// Reroll the subtask version
+	_, err = docRef.Set(ctx, subtask)
+	if err != nil {
+		return model.Subtask{}, err
+	}
+
+	return subtask, err
 }
 
 // DeleteTaskById retrieves the data from the service layer and deletes the task

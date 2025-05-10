@@ -13,6 +13,8 @@ type TaskController interface {
 	GetSubtasks(w http.ResponseWriter, r *http.Request)
 	GetResponses(w http.ResponseWriter, r *http.Request)
 	GetTaskById(w http.ResponseWriter, r *http.Request)
+	GetSubtaskById(w http.ResponseWriter, r *http.Request)
+	GetResponseById(w http.ResponseWriter, r *http.Request)
 
 	UpdateTaskDescription(w http.ResponseWriter, r *http.Request)
 	AddTaskHandlers(w http.ResponseWriter, r *http.Request)
@@ -22,6 +24,8 @@ type TaskController interface {
 	UpdateSubtaskStatus(w http.ResponseWriter, r *http.Request)
 	UpdateSubtaskHandler(w http.ResponseWriter, r *http.Request)
 	UpdateResponseMessage(w http.ResponseWriter, r *http.Request)
+	RerollTaskVersion(w http.ResponseWriter, r *http.Request)
+	RerollSubtaskVersion(w http.ResponseWriter, r *http.Request)
 
 	DeleteTaskById(w http.ResponseWriter, r *http.Request)
 	DeleteSubtaskById(w http.ResponseWriter, r *http.Request)

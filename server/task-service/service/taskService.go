@@ -185,6 +185,22 @@ func (s *taskService) GetSubtasks(ctx context.Context, taskId string) ([]model.S
 	return subtasks, nil
 }
 
+// GetSubtaskById retrieves the data from the controller layer and sends it to the repository layer
+// to retrieve the data of a subtask
+//
+// Parameters:
+//   - ctx: Request-scoped context
+//   - taskId: The ID of the task the subtask is part of
+//   - subtaskId: The ID of the subtask
+//
+// Returns:
+//   - model.Subtask: The data of the subtask
+//   - error: An error that occured during the process
+func (s *taskService) GetSubtaskById(ctx context.Context, taskId, subtaskId string) (model.Subtask, error) {
+	// Send the data to the repository layer and return the subtask data
+	return s.taskRepository.GetSubtaskById(ctx, taskId, subtaskId)
+}
+
 // GetResponses retrieves the data from the controller layer and returns the list of responses from the repository layer
 //
 // Parameters:
@@ -202,6 +218,22 @@ func (s *taskService) GetResponses(ctx context.Context, taskId string) ([]model.
 	}
 
 	return responses, nil
+}
+
+// GetResponseById retrieves the data from the controller layer and sends it to the repository layer
+// to return the data of the response
+//
+// Parameters:
+//   - ctx: Reqeust-scoped context
+//   - taskId: The ID of the task the response is part of
+//   - responseId: The ID of the response
+//
+// Returns:
+//   - model.Response: The data of the response
+//   - error: An error that occured during the process
+func (s *taskService) GetResponseById(ctx context.Context, taskId, responseId string) (model.Response, error) {
+	// Send the data to the repository layer to return the data of the task response
+	return s.taskRepository.GetResponseById(ctx, taskId, responseId)
 }
 
 // GetTaskById retrieves the data from the controller layer and retrieves the data of the task from the repository layer
@@ -388,6 +420,49 @@ func (s *taskService) UpdateResponseMessage(ctx context.Context, taskId string, 
 	}
 
 	return response, nil
+}
+
+// RerollTaskVersion retrieves the data from the controller layer and sends it to the repository layer
+// to roll back to an older task version
+//
+// Parameters:
+//   - ctx: Request-scoped context
+//   - taskId: The ID of the task
+//   - task: The old task version
+//
+// Returns:
+//   - model.Task: The updated task version
+//   - error: An error that occured during the process
+func (s *taskService) RerollTaskVersion(ctx context.Context, taskId string, task model.Task) (model.Task, error) {
+	// Send the data to the repository layer to roll back the task version
+	updatedTask, err := s.taskRepository.RerollTaskVersion(ctx, taskId, task)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	return updatedTask, nil
+}
+
+// RerollSubtaskVersion retrieves the data from the controller layer and sends it to the repository layer
+// to roll back an older subtask version
+//
+// Paramters:
+//   - ctx: Reqeust-scoped version
+//   - taskId: The ID of the task the subtask is part of
+//   - subtaskId: The ID of the subtask
+//   - subtask: The old subtask version
+//
+// Returns:
+//   - model.Subtask: The updated subtask version
+//   - error : An error that occured during the process
+func (s *taskService) RerollSubtaskVersion(ctx context.Context, taskId, subtaskId string, subtask model.Subtask) (model.Subtask, error) {
+	// Send the data to the repository layer to roll back the subtask version
+	updatedSubtask, err := s.taskRepository.RerollSubtaskVersion(ctx, taskId, subtaskId, subtask)
+	if err != nil {
+		return model.Subtask{}, err
+	}
+
+	return updatedSubtask, nil
 }
 
 // DeleteTaskById retrieves the data from the controller layer and sends it to the repository layer
