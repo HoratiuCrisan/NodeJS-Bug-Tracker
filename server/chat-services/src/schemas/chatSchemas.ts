@@ -117,9 +117,9 @@ export const viewMessagesSchema = Joi.object({
         "string.empty": `"Conversation ID" cannot be an empty string`
     }),
     messages: Joi.array().items(Joi.string()).min(1).required().messages({
-            "array.base": `"Messages" must be an array of string`,
-            "array.min": `"Messages" should contain at least 1 message ID`,
-            "any.required": `"Messages" is required and cannot be undefined`,
+        "array.base": `"Messages" must be an array of string`,
+        "array.min": `"Messages" should contain at least 1 message ID`,
+        "any.required": `"Messages" is required and cannot be undefined`,
     }),
 });
 

@@ -24,3 +24,9 @@ export type User = {
     lastConnectedAt: number | null;
     lastDisconnectedAt: number | null;
 };
+
+export type VersionDetails = {
+    id: string;
+    type: string;
+    data: unknown;
+}

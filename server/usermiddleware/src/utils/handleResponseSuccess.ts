@@ -3,7 +3,7 @@ import { createNotificationMessage, NotificationMessage } from "@bug-tracker/not
 import { CustomRequest } from "./customRequest";
 import { responseHandler } from "../middleware/responseHandler";
 import { Response } from "express";
-import { FirebaseUser } from "../types/User";
+import { VersionDetails, FirebaseUser } from "../types/User";
 
 type NotificationDetails = {
     users: {
@@ -32,14 +32,16 @@ export async function handleResponseSuccess({
     data,
     logDetails,
     notificationDetails,
+    versionDetails,
 }: {
     req: CustomRequest,
     res: Response,
     httpCode: number,
     message: string,
     data: unknown,
-    logDetails?: LogDetails
-    notificationDetails?: NotificationDetails
+    logDetails?: LogDetails,
+    notificationDetails?: NotificationDetails,
+    versionDetails?: VersionDetails
 }) {
     let logMessage: LogMessage | undefined;
     let notificationMessages: NotificationMessage[] | undefined;
@@ -78,5 +80,5 @@ export async function handleResponseSuccess({
         })
     }
 
-    await responseHandler(message, httpCode, data, res, logMessage, notificationMessages);
+    await responseHandler(message, httpCode, data, res, logMessage, notificationMessages, versionDetails);
 }

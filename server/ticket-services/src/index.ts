@@ -4,10 +4,16 @@ import ticketRouter from "./routes/tickets";
 import cron from "node-cron";
 import { TicketService } from "./services/ticketService";
 import { limitAccess } from "./middleware/requestsLimiter";
-import { errorHandler } from "@bug-tracker/usermiddleware";
+import { AppError, errorHandler } from "@bug-tracker/usermiddleware";
+import env from "dotenv";
+env.config();
+
+if (!process.env.PORT && !process.env.ROUTE) {
+    throw new AppError(`InvalidEnvData`, 500, `Invalid env port and route data`);
+}
  
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT;
 
 app.use(cors({
     origin: 'http://localhost:3000',
@@ -18,7 +24,7 @@ app.use(express.json())
 
 app.use(limitAccess);
 app.use(errorHandler);
-app.use("/api/tickets", ticketRouter);
+app.use(`${process.env.ROUTE}`, ticketRouter);
 
 const ticketService = new TicketService();
 

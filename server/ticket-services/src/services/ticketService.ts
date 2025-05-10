@@ -78,6 +78,7 @@ export class TicketService {
      * @param {number} limit The number of tickets to retrieve
      * @param {string} orderBy The criteria to order tickets by
      * @param {string} orderDirection The direction of the ordering
+     * @param {string | undefined} searchQuery The query searched by the user
      * @param {string | undefined} status The status of the ticket
      * @param {string | undefined} priority The priority of the ticket
      * @param {string | undefined} startAfter The last ticket ID that was fetched 
@@ -87,6 +88,7 @@ export class TicketService {
         limit: number, 
         orderBy: string,
         orderDirection: string, 
+        searchQuery?: string,
         status?: string,
         priority?: string,
         startAfter?: string,
@@ -96,6 +98,7 @@ export class TicketService {
             limit, 
             orderBy, 
             orderDirection, 
+            searchQuery,
             status, 
             priority, 
             startAfter
@@ -109,7 +112,7 @@ export class TicketService {
         }
 
         /* If the key was not cached, send the data to the repository layer to retrieve the tickets list from the data base */
-        const tickets = await this._ticketRepository.getAllTickets(limit, orderBy, orderDirection, status, priority, startAfter);
+        const tickets = await this._ticketRepository.getAllTickets(limit, orderBy, orderDirection, searchQuery, status, priority, startAfter);
 
         /* Get the IDs of the tickets */
         const ticketIds: string[] = tickets.map((ticket) => ticket.id); 
@@ -127,9 +130,10 @@ export class TicketService {
      * @param {number} limit The number of tickets returned at a time
      * @param {string} orderBy The field to sort by
      * @param {"asc" | "desc"} orderDirection The order direction
-     * @param {string} status The status of the ticket
-     * @param {string} priority The priority of the ticket
-     * @param {string} startAfter The last ticket fetched berfore the current request
+     * @param {string | undefined} searchQuery The query searched by the user 
+     * @param {string | undefined} status The status of the ticket
+     * @param {string | undefined} priority The priority of the ticket
+     * @param {string | undefined} startAfter The last ticket fetched berfore the current request
      * @returns {Promise<Ticket[]>} The collection of the tickets for a specific user
      */
     async getUserTickets(
@@ -137,6 +141,7 @@ export class TicketService {
         limit: number, 
         orderBy: string, 
         orderDirection: string, 
+        searchQuery?: string,
         status?: string,
         priority?: string,
         startAfter?: string,
@@ -150,6 +155,7 @@ export class TicketService {
             limit, 
             orderBy, 
             orderDirection, 
+            searchQuery,
             status, 
             priority, 
             startAfter
@@ -164,7 +170,7 @@ export class TicketService {
         }
 
         /* If the key is not cached send the data to the repository layer to retrieve the user tickets */
-        const tickets = await this._ticketRepository.getUserTickets(userId, limit, orderBy, orderDirection, status, priority, startAfter);
+        const tickets = await this._ticketRepository.getUserTickets(userId, limit, orderBy, orderDirection, searchQuery, status, priority, startAfter);
 
         /* Get the ticket IDs */
         const ticketIds = tickets.map((ticket) => ticket.id);
@@ -540,6 +546,7 @@ export class TicketService {
      * @param {number} limit The number of tickets to retrieve
      * @param {string} orderBy The tickets order criteria
      * @param {string} orderDirection The direction of the order
+     * @param {string | undefined} searchQuery The query searched by the user
      * @param {string | undefined} status The status of the tickets
      * @param {string | undefined} priority The priority of the tickets
      * @param {string | undefined} startAfter The ID of the last retrieved ticket at the previous fetching request
@@ -549,12 +556,13 @@ export class TicketService {
         limit: number,
         orderBy: string,
         orderDirection: string,
+        searchQuery?: string,
         status?: string,
         priority?: string,
         startAfter?: string 
     ): string {
         /* Stringify the data */
-        const queryString = JSON.stringify({limit, orderBy, orderDirection, status, priority, startAfter});
+        const queryString = JSON.stringify({limit, orderBy, orderDirection, searchQuery, status, priority, startAfter});
 
         /* Encrypt the data into a hash key */
         const hash = crypto.createHash("md5").update(queryString).digest("hex");

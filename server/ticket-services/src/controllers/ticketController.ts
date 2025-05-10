@@ -50,6 +50,13 @@ export class TicketController {
                 data: ticket,
             };
 
+            /* Generate the ticket version */
+            const versionDetails = {
+                id: ticket.id,
+                type: "ticket",
+                data: ticket,
+            };
+
             /* Return the data with the success message */
             await handleResponseSuccess({
                 req,
@@ -58,6 +65,7 @@ export class TicketController {
                 message: `Ticket created successfully`,
                 data: ticket,
                 logDetails,
+                versionDetails,
             });
         } catch (error) {
             next(error);
@@ -72,6 +80,7 @@ export class TicketController {
                     limit: Number(req.query.limit), /* The max number of tickets to retrieve at a time */
                     orderBy: String(req.query.orderBy), /* The order criteria */
                     orderDirection: String(req.query.orderDirection), /* The direction of the order */
+                    searchQeury: req.query.searchQeury,
                     status: req.query.status, /* The status of the ticket */
                     priority: req.query.priority, /* The priority of the ticket */
                     startAfter: req.query.startAfter, /* The ID of the last ticket retrieved at the previous fetching request */
@@ -79,9 +88,12 @@ export class TicketController {
                 getAllTicketsSchema, /* The validation schema */
             );
 
-            console.log(inputData);
+            let searchQeury = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
-            let status = undefined, priority = undefined, startAfter = undefined;
+            /* Check if the search query of the ticket was sent */
+            if (inputData.searchQeury) {
+                searchQeury = String(searchQeury)
+            }
 
             /* Check if the status of the ticket was sent */
             if (inputData.status) {
@@ -106,6 +118,7 @@ export class TicketController {
                 inputData.limit,
                 inputData.orderBy,
                 inputData.orderDirection,
+                searchQeury,
                 status,
                 priority,
                 startAfter
@@ -157,6 +170,7 @@ export class TicketController {
                     limit: Number(req.query.limit), /* The max number of tickets to retrieve */
                     orderBy: String(req.query.orderBy), /* The order cirteria */
                     orderDirection: String(req.query.orderDirection), /* The order direction */
+                    searchQeury: req.query.searchQeury,
                     status: req.query.status, /* The status of the tickets */
                     priority: req.query.priority, /* The priority of the tickets */
                     startAfter: req.query.startAfter, /* The ID of the last ticket retrieved at the previous fetching request */
@@ -166,7 +180,12 @@ export class TicketController {
 
             console.log(inputData);
 
-            let status = undefined, priority = undefined, startAfter = undefined;
+            let searchQeury = undefined, status = undefined, priority = undefined, startAfter = undefined;
+
+            /* Check if the search query was sent */
+            if (searchQeury) {
+                searchQeury = String(searchQeury);
+            }
 
             /* Check if the status was sent */
             if (inputData.status) {
@@ -192,6 +211,7 @@ export class TicketController {
                 inputData.limit,
                 inputData.orderBy,
                 inputData.orderDirection,
+                searchQeury,
                 status,
                 priority,
                 startAfter
@@ -307,6 +327,9 @@ export class TicketController {
                 updateTicketSchema, /* The validation schema */
             );
 
+            /* Get the data of the current ticket version */
+            const currentTicket = await ticketService.getUserTicketById(inputData.userId!, inputData.ticketId, inputData.role!);
+
             /* Send the data to the service layer to update the ticket data */
             const { data: ticket, duration } = await measureTime(async () => ticketService.updateTicketById(
                 inputData.userId!,
@@ -325,6 +348,13 @@ export class TicketController {
                 data: ticket,
             };
 
+            /* Generate the ticket version */
+            const versionDetails = {
+                id: ticket.id,
+                type: "ticket",
+                data: ticket,
+            };
+
             /* Return the data with the success message */
             await handleResponseSuccess({
                 req,
@@ -333,43 +363,9 @@ export class TicketController {
                 message: `Ticket updated successfully`,
                 data: ticket,
                 logDetails,
+                notificationDetails: undefined,
+                versionDetails,
             });
-
-            // /* Check if the ticket is currently locked by another user */
-            // const isTicketLocked = await redisService.isTicketLocked(ticketId);
-
-            // /* If the ticket is locked get the data from it */
-            // if (isTicketLocked) {
-            //     const parsedLockData: LockTicketData = JSON.parse(isTicketLocked);
-
-            //     /* If the user that locked the ticket is not the current user 
-            //         deny the user from updating the ticket */
-            //     if (parsedLockData.lockedBy !== author) {
-            //         /* Log the error message and send it to the user */
-            //         await ticketService.sendMessageToQueue(logError, `${author} failed to update the ticket: ${ticketId}. Reason: locked ticket`);
-            //         return res.status(500).send({error: `The ticket is currently being updated by another user`});
-            //     }
-            // } else {
-            //     /* Lock the ticket if it is not locked */
-            //     await redisService.lockTicket(author, ticketId);
-            // }
-            
-            // const ticketExists: TicketObject = await ticketService.getUserTicketById(author, ticketId, role);
-
-            // /* Update the ticket data */
-            // const ticket: TicketObject = await ticketService.updateTicketById(updateData, author, ticketId, role);
-
-            // /* Unlock the ticket */
-            // await redisService.unlockTicket(ticketId);
-
-            // /* Add the ticket to the cache redis database */
-            // const cacheTimeout = 12 * 60 * 60;
-            // const updateCachedTicket: boolean = await redisService.cacheTicket(ticketId, ticket, cacheTimeout);
-
-            // /* Log the failed caching error to the Logging service */
-            // if (!updateCachedTicket) {
-            //     await ticketService.sendMessageToQueue(logError, `Failed to cache the ticket: ${ticketId}`);
-            // }
         } catch (error) {
             next(error);
         }
@@ -426,6 +422,13 @@ export class TicketController {
                 type: "email",
                 data: inputData.ticketId,
             };
+        
+            /* Generate the ticket version */
+            const versionDetails = {
+                id: ticket.id,
+                type: "ticket",
+                data: ticket,
+            };
 
             /* Return the data with the success message */
             await handleResponseSuccess({
@@ -436,6 +439,7 @@ export class TicketController {
                 data: ticket,
                 logDetails,
                 notificationDetails,
+                versionDetails,
             });
         } catch (error) {
             next(error);

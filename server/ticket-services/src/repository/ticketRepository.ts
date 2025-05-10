@@ -49,6 +49,7 @@ export class TicketRepository {
      * @param {number} limit The number of tickets to retrieve 
      * @param {string} orderBy The crieteria to order the tickets by 
      * @param {string} orderDirection The direction of the order
+     * @param {string | undefined} searchQuery The searched user query  
      * @param {string | undefined} status The status of the ticket 
      * @param {string | undefined} priority The status of the ticket
      * @param {string | undefined} startAfter The ID of the last retrieved ticket at the previous fetching request
@@ -58,64 +59,75 @@ export class TicketRepository {
         limit: number, 
         orderBy: string,
         orderDirection: string, 
+        searchQuery?: string,
         status?: string,
         priority?: string,
         startAfter?: string,
     ): Promise<Ticket[]> {
-        return await executeWithHandling(async () => {            
-            /* Get the tickets collection query */
-            let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = 
-                db.collection(this._dbTicketsCollection);
+        return await executeWithHandling(
+            async () => {            
+                /* Get the tickets collection query */
+                let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = 
+                    db.collection(this._dbTicketsCollection);
 
-            /* If the api call contains a status, filter the Tickets collection
-                based on the ticket status that was sent */
-            if (status) {
-                ticketsRef = ticketsRef.where("status", "==", status);
-            }
-
-            /* If the api call contains a priority type, filter the Tickets collection
-                based on the ticket priority that was sent */
-            if (priority) {
-                ticketsRef = ticketsRef.where("priority", "==", priority);
-            }
-
-            /* Order the tickets colletion by the order criteria and the direction, 
-                received from the api call */
-
-            /* Check if the ordering direction is valid */
-            if (orderDirection !== "asc" && orderDirection !== "desc") {
-                throw new AppError(`InvalidDirectionOrder`, 400, `Invalid tickets order direction`);
-            }
-
-            ticketsRef.orderBy(orderBy, orderDirection);
-
-            if (startAfter) {
-                /* Check if the ticket with the sent ID exists */
-                const lastDocSnapshot = await db.collection(this._dbTicketsCollection).doc(startAfter).get();
-
-                /* Mark the starting point from where the fetching will begin
-                    for the collection of tickets */
-                if (lastDocSnapshot.exists) {
-                    ticketsRef = ticketsRef.startAfter(lastDocSnapshot);
+                /* If the api call contains a status, filter the Tickets collection
+                    based on the ticket status that was sent */
+                if (status) {
+                    ticketsRef = ticketsRef.where("status", "==", status);
                 }
-            }
 
-            /* Fetch the number of tickets delimited by the limit 
-                that was received from the api call for the collection */
-            ticketsRef = ticketsRef.limit(limit);
+                /* If the api call contains a priority type, filter the Tickets collection
+                    based on the ticket priority that was sent */
+                if (priority) {
+                    ticketsRef = ticketsRef.where("priority", "==", priority);
+                }
 
-            /* Return only the need ticket information to be displayed on the tickets page */
-            const ticketsData = await ticketsRef.select("id", "title", "authorId", "priority", "status", "deadline").get();
+                /* Order the tickets colletion by the order criteria and the direction, 
+                    received from the api call */
 
-            const tickets: Ticket[] = [];
+                /* Check if the ordering direction is valid */
+                if (orderDirection !== "asc" && orderDirection !== "desc") {
+                    throw new AppError(`InvalidDirectionOrder`, 400, `Invalid tickets order direction`);
+                }
 
-            /* Add the ticket to the list */
-            ticketsData.docs.map((doc) => {
-                tickets.push(doc.data() as Ticket);
-            });
+                ticketsRef.orderBy(orderBy, orderDirection);
 
+                if (startAfter) {
+                    /* Check if the ticket with the sent ID exists */
+                    const lastDocSnapshot = await db.collection(this._dbTicketsCollection).doc(startAfter).get();
 
-            return tickets;
+                    /* Mark the starting point from where the fetching will begin
+                        for the collection of tickets */
+                    if (lastDocSnapshot.exists) {
+                        ticketsRef = ticketsRef.startAfter(lastDocSnapshot);
+                    }
+                }
+
+                /* Fetch the number of tickets delimited by the limit 
+                    that was received from the api call for the collection */
+                ticketsRef = ticketsRef.limit(limit);
+
+                /* Return only the need ticket information to be displayed on the tickets page */
+                const ticketsData = await ticketsRef.select("id", "title", "authorId", "priority", "status", "deadline").get();
+
+                const tickets: Ticket[] = [];
+
+                /* Add the ticket to the list */
+                ticketsData.docs.map((doc) => {
+                    tickets.push(doc.data() as Ticket);
+                });
+
+                /* If the search query was not received return the list of retrieved tickets */
+                if (!searchQuery) return tickets;
+
+                /* COnvert the search query to lowercase */
+                const query = searchQuery.toLocaleLowerCase();
+
+                /* Return the list of tickets filtered by the query */
+                return tickets.filter(ticket => {
+                    ticket.title.toLocaleLowerCase().includes(query) ||
+                    ticket.description.toLocaleLowerCase().includes(query)
+                });
             },
             `RetrieveTicketsError`,
             500,
@@ -130,6 +142,7 @@ export class TicketRepository {
      * @param {number} limit The number of tickets to retrieve
      * @param {string} orderBy The criteria to order tickets by
      * @param {string} orderDirection The direction of the ordering ("asc" or "desc")
+     * @param {string | undefined} searchQuery The query search by the user in the search bar
      * @param {string | undefined} status Optional filter by ticket status
      * @param {string | undefined} priority Optional filter by ticket priority
      * @param {string | undefined} startAfter Optional ticket ID for pagination
@@ -140,46 +153,62 @@ export class TicketRepository {
         limit: number,
         orderBy: string,
         orderDirection: "asc" | "desc",
+        searchQuery?: string,
         status?: string,
         priority?: string,
         startAfter?: string,
     ): Promise<Ticket[]> {
         return executeWithHandling(
             async () => {
+                /* Query over the tickets collection where the user is either a ticket handler of the ticket author */
                 const buildQuery = (field: "authorId" | "handlerId") => {
                     let q = db.collection(this._dbTicketsCollection)
                         .where(field, "==", userId);
 
+                    /* If the status was received, filter the tickets with the same status */
                     if (status) q = q.where("status", "==", status);
+                    
+                    /* If the priority was received, filter the tickets with the same priority */
                     if (priority) q = q.where("priority", "==", priority);
 
                     return q;
                 };
 
-                // Fetch both sets
+                /* Get the list of tickets for both cases */
                 const [authorSnap, handlerSnap] = await Promise.all([
                     buildQuery("authorId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
                     buildQuery("handlerId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
                 ]);
 
-                // Merge and filter out tickets where user is both author and handler
-                const combined: Ticket[] = [
+                /* Merge both cases lists into one */
+                let combined: Ticket[] = [
                     ...authorSnap.docs,
                     ...handlerSnap.docs,
                 ]
                 .map(doc => ({...doc.data() }))
                 .filter(ticket => ticket.authorId !== ticket.handlerId) as Ticket[];
 
+                /* Filter the combined tickets based on the searchQuery parameter if it was received */
+                if (searchQuery) {
+                    combined = combined.filter(ticket => {
+                        ticket.title.toLocaleLowerCase().includes(searchQuery) ||
+                        ticket.description.toLocaleLowerCase().includes(searchQuery)
+                    })
+                }
+
+                /* Check if the order field is allowed */
                 if (orderBy !== "title" && orderBy !== "deadline" && orderBy !== "createdAt" && orderBy !== "status" && orderBy !== "priority") {
                     throw new AppError(`InvalidOrderField`, 400, `Invalid order criteria`);
                 }
                 
+                /* Sort the combined list based on the order field */
                 combined.sort((a, b) => {
                     const aVal = a[orderBy];
                     const bVal = b[orderBy];
 
                     if (aVal === bVal) return 0;
 
+                    /* Sort in the selected order direction */
                     if (orderDirection === "asc") {
                         return aVal > bVal ? 1 : -1;
                     } else {
@@ -187,7 +216,7 @@ export class TicketRepository {
                     }
                 });
 
-                // Handle pagination manually
+                /* Handle pagination manually */
                 if (startAfter) {
                     const startIndex = combined.findIndex(ticket => ticket.id === startAfter);
                     if (startIndex >= 0) {
@@ -195,6 +224,7 @@ export class TicketRepository {
                     }
                 }
 
+                /* Return the limited list of tickets */
                 return combined.slice(0, limit);
             },
             "RetrieveUserTicketsError",
@@ -202,7 +232,6 @@ export class TicketRepository {
             "Failed to retrieve user tickets list"
         );
     }
-
 
     /**
      * 
