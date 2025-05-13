@@ -11,6 +11,7 @@ export class ChatRepository {
     private dbMessageCollection: string;
 
     constructor() {
+        /* Verify if the env data was initialized */
         if (!process.env.CONVERSATION_COLLECTION || !process.env.CONVERSATION_MESSAGE_SUBCOLLECTION) {
             throw new AppError(`InvalidEnvData`, 400, `Invalid env. data`);
         }
@@ -419,6 +420,7 @@ export class ChatRepository {
                 /* Get the conversation reference */
                 const conversationRef = db.collection(this.dbConversationCollection).doc(conversationId);
 
+                /* Get the document data */
                 const conversationDoc = await conversationRef.get();
 
                 if (!conversationDoc.exists) {

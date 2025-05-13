@@ -2,11 +2,22 @@ import { AppError  } from "@bug-tracker/usermiddleware";
 import admin from "../../config/firebase";
 import { executeWithHandling} from "@bug-tracker/usermiddleware"
 import { LogMessage } from "../../../logging-lib/src";
+import env from "dotenv";
+env.config();
 
 const db = admin.firestore();
 
 export class LogRepository {
-    private _dbLogsCollection = "Logs";
+    private _dbLogsCollection: string;
+
+    constructor() {
+        /* Verify the env data */
+        if (!process.env.LOG_COLLECTION) {
+            throw new AppError(`InvalidEnvData`, 500, `Invalid log servce log collection`);
+        }
+
+        this._dbLogsCollection = process.env.LOG_COLLECTION;
+    }
 
     /**
      * 

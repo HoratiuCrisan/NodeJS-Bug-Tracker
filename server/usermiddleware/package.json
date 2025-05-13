@@ -20,6 +20,8 @@
     "@bug-tracker/logging-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/logging-lib",
     "@bug-tracker/notification-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/notification-lib",
     "@bug-tracker/user-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/user-lib",
+    "@bug-tracker/version-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/version-lib",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "joi": "^17.13.3",
     "uuid": "^11.1.0"
@@ -28,7 +30,8 @@
     "overrides": {
       "@bug-tracker/logging-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/logging-lib",
       "@bug-tracker/notification-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/notification-lib",
-      "@bug-tracker/user-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/user-lib"
+      "@bug-tracker/user-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/user-lib",
+      "@bug-tracker/version-lib": "link:../../../AppData/Local/pnpm/global/5/node_modules/@bug-tracker/version-lib"
     }
   }
 }

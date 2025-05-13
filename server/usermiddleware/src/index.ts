@@ -1,3 +1,6 @@
+import env from "dotenv";
+env.config();
+
 export {CustomRequest} from "./utils/customRequest";
 
 /* Middleware functionalities */

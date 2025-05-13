@@ -1,18 +1,19 @@
 import axios from "axios"
-import { TICKETS_END_POINT } from "./endpoint"
+import { env } from "process";
 import { Ticket, RequestTicket, TicketCard, TicketObject } from "../utils/types/Ticket"
 
 const getAllTickets = async (
     limit: number, 
     orderBy: string, 
     orderDirection: string,
+    searchQuery?: string,
     priority?: string,
     status?: string,
     startAfter?: string
 ): Promise<TicketCard[]> => {
     try {
         
-        const response = await axios.get(`${TICKETS_END_POINT}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`);
+        const response = await axios.get(`${process.env.TICKETS_END_POINT}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`);
 
         const responseData = response.data;
 
@@ -38,7 +39,7 @@ const getAllTickets = async (
 
 const getUserTicketById = async(userId: string, ticketId: string) => {
     try {
-        const response = await axios.get(`${TICKETS_END_POINT}/${userId}/${ticketId}`);
+        const response = await axios.get(`${process.env.TICKETS_END_POINT}/${userId}/${ticketId}`);
 
         const responseData = response.data;
 
@@ -59,13 +60,14 @@ const getTicketsByUsername = async(
     limit: number,
     orderBy: string,
     orderDirection: string,
+    searchQuery?: string,
     priority?: string,
     status?: string,
     startAfter?: string
 ): Promise<TicketCard[]> => {
     try {
         const response = await axios.get(`
-            ${TICKETS_END_POINT}/${userId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`
+            ${process.env.TICKETS_END_POINT}/${userId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`
         );
 
         const responseData = response.data;
@@ -96,7 +98,7 @@ const updateTicketById = async(id: string, updateData: Ticket, author: string | 
     }
 
     try {
-        const response = await axios.put(`${TICKETS_END_POINT}/${id}`, {updateData, author})
+        const response = await axios.put(`${process.env.TICKETS_END_POINT}/${id}`, {updateData, author})
 
         if (!response)
             return null
@@ -108,7 +110,7 @@ const updateTicketById = async(id: string, updateData: Ticket, author: string | 
 
 const deleteTicketById = async (id: string) => {
     try {
-        const response = await axios.delete(`${TICKETS_END_POINT}/${id}`)
+        const response = await axios.delete(`${process.env.TICKETS_END_POINT}/${id}`)
 
         if (!response)
             return null

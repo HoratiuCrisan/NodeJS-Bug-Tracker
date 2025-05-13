@@ -80,7 +80,7 @@ export class TicketController {
                     limit: Number(req.query.limit), /* The max number of tickets to retrieve at a time */
                     orderBy: String(req.query.orderBy), /* The order criteria */
                     orderDirection: String(req.query.orderDirection), /* The direction of the order */
-                    searchQeury: req.query.searchQeury,
+                    searchQuery: req.query.searchQuery,
                     status: req.query.status, /* The status of the ticket */
                     priority: req.query.priority, /* The priority of the ticket */
                     startAfter: req.query.startAfter, /* The ID of the last ticket retrieved at the previous fetching request */
@@ -88,11 +88,11 @@ export class TicketController {
                 getAllTicketsSchema, /* The validation schema */
             );
 
-            let searchQeury = undefined, status = undefined, priority = undefined, startAfter = undefined;
+            let searchQuery = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
             /* Check if the search query of the ticket was sent */
-            if (inputData.searchQeury) {
-                searchQeury = String(searchQeury)
+            if (inputData.searchQuery) {
+                searchQuery = String(searchQuery)
             }
 
             /* Check if the status of the ticket was sent */
@@ -118,7 +118,7 @@ export class TicketController {
                 inputData.limit,
                 inputData.orderBy,
                 inputData.orderDirection,
-                searchQeury,
+                searchQuery,
                 status,
                 priority,
                 startAfter
@@ -170,7 +170,7 @@ export class TicketController {
                     limit: Number(req.query.limit), /* The max number of tickets to retrieve */
                     orderBy: String(req.query.orderBy), /* The order cirteria */
                     orderDirection: String(req.query.orderDirection), /* The order direction */
-                    searchQeury: req.query.searchQeury,
+                    searchQuery: req.query.searchQuery,
                     status: req.query.status, /* The status of the tickets */
                     priority: req.query.priority, /* The priority of the tickets */
                     startAfter: req.query.startAfter, /* The ID of the last ticket retrieved at the previous fetching request */
@@ -178,13 +178,11 @@ export class TicketController {
                 getUserTicketsSchema, /* The validation schema */
             );
 
-            console.log(inputData);
-
-            let searchQeury = undefined, status = undefined, priority = undefined, startAfter = undefined;
+            let searchQuery = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
             /* Check if the search query was sent */
-            if (searchQeury) {
-                searchQeury = String(searchQeury);
+            if (searchQuery) {
+                searchQuery = String(searchQuery);
             }
 
             /* Check if the status was sent */
@@ -211,7 +209,7 @@ export class TicketController {
                 inputData.limit,
                 inputData.orderBy,
                 inputData.orderDirection,
-                searchQeury,
+                searchQuery,
                 status,
                 priority,
                 startAfter
@@ -236,9 +234,7 @@ export class TicketController {
             const authors: User[] = await ticketService.getTicketUsersData(authorIds);
 
             /* Get the combined data of the tickets and authors */
-            const ticketCards = ticketService.getTicketCards(authors, tickets);
-
-            console.log(tickets);
+            const ticketCards: TicketCard[] = ticketService.getTicketCards(authors, tickets);
 
             /* Return the data with the success message */
             await handleResponseSuccess({
@@ -373,6 +369,7 @@ export class TicketController {
 
     static async assignTicket(req: CustomRequest, res: Response, next: NextFunction) {
         try {
+            console.log(req.user?.user_id)
             /* Validate the data based on the schema */
             const inputData = validateData(
                 {
@@ -420,7 +417,7 @@ export class TicketController {
                     },
                 ],
                 type: "email",
-                data: inputData.ticketId,
+                data: `http://localhost:3000/tickets/${ticket.id}`,
             };
         
             /* Generate the ticket version */

@@ -1,0 +1,1 @@
+export {VersionProducer} from "./service/versionProducer";

@@ -12,6 +12,7 @@ export class UserRepository {
     private _dbUsersCollection: string;
 
     constructor() {
+        /* Verify if the env data was initialized */
         if (!process.env.USERS_COLLECTION) {
             throw new AppError(`InvalidEnvData`, 400, `Invalid env. data`);
         }
@@ -156,19 +157,28 @@ export class UserRepository {
         );
     }
 
+    /**
+     * 
+     * @param {string} userIds The list of user IDs
+     * @returns {Promise<User[]>} The list of retrieved data for the user IDs
+     */
     async getUsersData(userIds: string[]): Promise<User[]> {
         return executeWithHandling(
             async () => {
                 const users: User[] = [];
 
+                /* Iterate over the list of user IDs and generate chunks of items to retrieve */
                 for (let i = 0; i < userIds.length; i+= 10) {
+                    /* Set the chunk to 10 (max allowed chunk for the free plan) */
                     const chunk = userIds.slice(i, i + 10);
 
+                    /* Get the snapshots for the chunk of users */
                     const snapshot = await db   
                         .collection(this._dbUsersCollection)
                         .where(FieldPath.documentId(), "in", chunk)
                         .get();
 
+                    /* Add the data of each user to the users list */
                     snapshot.forEach((doc) => {
                         users.push(doc.data() as User);
                     });

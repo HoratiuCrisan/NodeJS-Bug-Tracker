@@ -12,6 +12,7 @@ export class GroupRepository {
     private dbMessageSubCollection: string;
 
     constructor() {
+        /* Verify if the env data was initialized */
         if (!process.env.GROUP_COLLECTION || !process.env.GROUP_MESSAGE_SUBCOLLECTION) {
             throw new AppError(`InvalidEnvData`, 400, `Invalid group env. data`);
         }

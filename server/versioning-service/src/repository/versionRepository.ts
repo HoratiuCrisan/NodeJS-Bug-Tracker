@@ -10,6 +10,7 @@ export class VersionRepository {
     private _dbVersionsCollection: string;
 
     constructor() {
+        /* Verify if the env data was initialized */
         if (!process.env.VERSIONS_COLLECTION) {
             throw new AppError(`InvalidEnvData`, 401, `Invalid env. data`);
         }

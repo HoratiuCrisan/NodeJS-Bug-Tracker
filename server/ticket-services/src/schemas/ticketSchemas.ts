@@ -123,11 +123,11 @@ export const assignTicketSchema = Joi.object({
         "any.required": `"Ticket ID" is required to perform the operation`,
         "string.empty": `"Ticket ID" cannot be an empty string`,
     }),
-    handlerEmail: Joi.string().email({minDomainSegments: 3, tlds: {allow: ['com', 'net', 'ro']}}).required().messages({
+    handlerEmail: Joi.string().required().messages({
         "any.required": `"Handler Email" is required to perform the operation`,
         "string.empty": `"Handler Email" cannot be an empty string`,
     }),
-    authorEmail: Joi.string().email({minDomainSegments: 3, tlds: {allow: ['com', 'net', 'ro']}}).required().messages({
+    authorEmail: Joi.string().required().messages({
         "any.required": `"Author Email" is required to perform the operation`,
         "string.empty": `"Author Email" cannot be an empty string`,
     }),

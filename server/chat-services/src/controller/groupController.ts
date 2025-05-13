@@ -54,10 +54,17 @@ export class GroupController {
                 data: {id: group.id},
             };
 
+            /* Generate the user notification data for each group member */
+            const notificationUsers = group.members.map(member => {
+                return {
+                    id: member,
+                    email: undefined,
+                    message: `You have been added to the group ${group.title}`
+                }
+            });
             /* Create the notification message */
             const notificationDetails = {
-                userIds: group.members,
-                message: `You have been added to the group ${group.title} by ${group.admin}`,
+                users: notificationUsers,
                 type: "in-app",
                 data: group.id,
             };
@@ -435,10 +442,19 @@ export class GroupController {
                 data: deletedGroup,
             };
 
+            /* Generate the user notification details for each group member */
+
+            const notificationUsers = groupData.members.map((member) => {
+                return {
+                    id: member,
+                    email: undefined,
+                    message: `Group ${inputData.groupId} was deleted`,
+                }
+            });
+
             /* Generate the notification data */
             const notificationDetails = {
-                userIds: groupData.members,
-                message: `Group ${inputData.groupId} was deleted`,
+                users: notificationUsers,
                 type: "in-app",
                 data: undefined,
             };

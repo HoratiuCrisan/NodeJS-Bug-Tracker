@@ -1,4 +1,4 @@
-import admin from "../config/firebase";
+import admin from "../../config/firebase";
 import { Notification } from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/notification-lib/src";
 import {AppError, executeWithHandling} from "@bug-tracker/usermiddleware";
 import env from "dotenv";

@@ -1,12 +1,20 @@
 import { Notification, NotificationMessage } from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/notification-lib/src";
-import { uuid as uuidv4 } from "uuidv4";
 import { NotificationRepository } from "../repository/notificationRepository";
 import nodeMailer from "nodemailer";
+import {v4} from "uuid";
+import env from "dotenv";
+import { AppError } from "@bug-tracker/usermiddleware";
+env.config();
 
 export class NotificationService {
     private _notificationRepository: NotificationRepository;
 
     constructor() {
+        /* Verify if the env data was initialized */
+        if (!process.env.GMAIL_ADDRESS || !process.env.GMAIL_PASSWORD) {
+            throw new AppError(`InvalidEnvData`, 500, `Invalid env gmail service data`);
+        }
+
         this._notificationRepository = new NotificationRepository();
     }
 
@@ -17,7 +25,7 @@ export class NotificationService {
      */
     async createNotification(notificationMessage: NotificationMessage): Promise<Notification> {
         const notification: Notification = {
-            id: uuidv4(), /* Generate an ID for the notification */
+            id: v4(), /* Generate an ID for the notification */
             email: notificationMessage.email,
             timestamp: Date.now(), /* Generate the timestamp of the notification emittion */
             read: false, /* Mark the notification read status to false */
@@ -85,14 +93,32 @@ export class NotificationService {
         return await this._notificationRepository.deleteNotifications(N_DAYS_AGO);
     }
 
+    /**
+     * 
+     * @param {string} email The email address of the user to be sent the message
+     * @param {string} message The text message of the notification
+     * @param {unknown} data The data of the message
+     */
     async sendEmaiNotification(email: string, message: string, data: unknown) {
-        nodeMailer.createTransport({
-            host: "smtp.ethereal.email",
-            port: 465,
-            secure: true,
+        /* Create a new nodemailer tranpsorter with the gmail service */
+        const transporter = nodeMailer.createTransport({
+            service: "gmail",
+            port: 587, 
+            secure: false, 
+            /* The data of the provider */
             auth: {
+                user: process.env.GMAIL_ADDRESS,
+                pass: process.env.GMAIL_PASSWORD,
+            },
+        });
 
-            }
-        })
+        /* Send the email notification to the user */
+        await transporter.sendMail({
+            from: `"Bug-tracker" <${process.env.GMAIL_ADDRESS}>`,
+            to: email,
+            subject: message,
+            text: JSON.stringify(data),
+
+        });
     }
 }

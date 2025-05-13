@@ -9,11 +9,13 @@ export type LogMessage = {
         status: number;
         duration: number;
     }
-    user: {
-        id: string;
-        email: string;
-        displayName: string;
-        role: string;
-    },
+    user: LogUser;
     data: unknown;
+}
+
+export type LogUser = {
+    id: string;
+    email: string;
+    displayName: string;
+    role: string;
 }

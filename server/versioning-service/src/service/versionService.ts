@@ -1,5 +1,4 @@
-import { Ticket, Task, Version } from "../types/general";
-import { LogMessage } from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/logging-lib";
+import { Ticket, Task, Subtask, Version } from "../types/general";
 import { v4 } from "uuid";
 import { VersionRepository } from "../repository/versionRepository";
 import { AppError } from "@bug-tracker/usermiddleware";
@@ -11,7 +10,8 @@ export class VersionService {
     private _itemTypes: Record<string, string>;
 
     constructor() {
-        if (!process.env.TICKETS_VERSIONS || !process.env.TASKS_VERSIONS || !process.env.LOGS_VERSIONS) {
+        /* Verify if the env data was initialized */
+        if (!process.env.TICKETS_VERSIONS || !process.env.TASKS_VERSIONS || !process.env.SUBTASK_VERSIONS) {
             throw new AppError(`InvalidEnvData`, 400, `Invalid env. data`);
         }
 
@@ -19,17 +19,17 @@ export class VersionService {
         this._itemTypes = {
             "ticket": process.env.TICKETS_VERSIONS,
             "task": process.env.TASKS_VERSIONS,
-            "log": process.env.LOGS_VERSIONS,
+            "subtask": process.env.SUBTASK_VERSIONS,
         };
     } 
 
     /**
      * 
      * @param {string} type The type of item received
-     * @param {Ticket | Task | LogMessage} data The data of the item
+     * @param {Ticket | Task | Subtask} data The data of the item
      * @returns {Promise<Version>} The version of the item
      */
-    async createItemVersion(type: string, data: Ticket | Task | LogMessage): Promise<Version> {
+    async createItemVersion(type: string, data: Ticket | Task | Subtask): Promise<Version> {
         /* Check if the received type is part of the record */
         const itemType = this.checkItemType(type);
         
@@ -110,11 +110,11 @@ export class VersionService {
     
     /**
      * 
-     * @param {Ticket | Task | LogMessage} data The data of the version 
+     * @param {Ticket | Task | Subtask} data The data of the version 
      * @param {number} version The number of the last version
      * @returns {Version} The version object
      */
-    private createItemVersionObject(data: Ticket | Task | LogMessage, version: number): Version {
+    private createItemVersionObject(data: Ticket | Task | Subtask, version: number): Version {
         return {
             id: v4(), /* Generate and ID for the version */
             timestamp: Date.now(), 

@@ -9,6 +9,7 @@ export class UserProducer {
     private _channel: Channel | null;
 
     constructor() {
+        /* Verify if the env data was initialized */
         if (!process.env.RABBITMQ_URL) {
             throw new Error(`Invalid user producer env. data`);
         }
@@ -18,54 +19,78 @@ export class UserProducer {
         this._channel = null;
     }
 
-    async initConnection(): Promise<void> {
+    async connection(): Promise<void> {
+        /* If the connection exists, exit */
         if (this._channel && this._connection) return;
 
         try {
+            /* Initialize the connection based on the rabbitmq url */
             this._connection = await connect(this._RABBITMQ_URL);
+
+            /* Initialize the channel using the connection */
             this._channel = await this._connection.createChannel();
         } catch (error) {
             throw new Error(`Failed to initialize user producer connection: ${error}`);
         }
     }
 
+    /**
+     * 
+     * @param {string} queue The name of the queue the producer listens to
+     * @param {string[]} userIds The list with the IDs of the users
+     * @returns {Promise<unknown[]>} The list of users data
+     */
     async assertUserQueue(queue: string, userIds: string[]): Promise<any[]> {
-        await this.initConnection();
+        /* Initialize the connection */
+        await this.connection();
     
         try {
-            // Step 1: Assert the main and reply queue
-            await this._channel?.assertQueue(queue, { durable: true });
+            /* If the channel of the connection failed, exit */
+            if (!this._connection || !this._channel) return [];
+
+            /* Initialize the producer to listen to the queue */
+            await this._channel.assertQueue(queue, { durable: true });
     
-            // Step 2: Create a temporary exclusive reply queue
+            /* Generate a temporary queue for the response */
             const { queue: replyQueue } = await this._channel!.assertQueue('', {
                 exclusive: true
             });
-    
+            
+            /* Generate a correlation ID using uuid */
             const correlationId = v4();
     
+            /* Return a promise that is responisble for listening to the queue,
+                and replying to the temporary queue with the users data */
             return new Promise((resolve, reject) => {
-                // Step 3: Set up consumer for the reply queue
-                this._channel!.consume(replyQueue, (msg) => {
+                /* If the connection of channel are not initialized, exit */
+                if (!this._channel || !this._connection) return [];
+
+                /* Retrieve the message from the temporary queue */
+                this._channel.consume(replyQueue, (msg) => {
+                    /* Check if the correlationID of the matches matches with the one created above */
                     if (msg?.properties.correlationId === correlationId) {
                         const users = JSON.parse(msg.content.toString());
-                        resolve(users); // Resolve with the response
+
+                        /* Resolve the response */
+                        resolve(users); 
                     }
                 }, {
                     noAck: true
                 });
     
-                // Step 4: Send the message with replyTo and correlationId
+                /* Encode the list of users */
                 const message = Buffer.from(JSON.stringify(userIds));
+
+                /* Send the list of users to the users queue with the correlation ID */
                 const success = this._channel?.sendToQueue(queue, message, {
                     persistent: true,
                     replyTo: replyQueue,
                     correlationId
                 });
-    
+                
+                /* Check if the operation succeded */
                 if (!success) {
                     reject(new Error('Failed to send user IDs'));
-                } else {
-                    console.log(`User IDs sent with correlationId ${correlationId}`);
                 }
             });
     
@@ -77,10 +102,11 @@ export class UserProducer {
 
     async close(): Promise<void> {
         try {
-            if (this._channel) await this._channel.close();
-            if (this._connection) await this._connection.close();
+            /* If the connection is closed exit */
+            if (!this._channel || !this._connection) return;
 
-            console.log(`User producer connection closed successfully`);
+            await this._channel.close();
+            await this._connection.close();
         } catch (error) {
             throw new Error(`Failed to close user producer connection: ${error}`);
         }

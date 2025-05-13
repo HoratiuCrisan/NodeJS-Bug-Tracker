@@ -1,6 +1,9 @@
 import  { ChannelModel, Channel, connect } from "amqplib";
 import { LogService } from "./logService";
 import { LogMessage } from "@bug-tracker/logging-lib";
+import { AppError } from "@bug-tracker/usermiddleware";
+import env from "dotenv";
+env.config();
 
 export class RabbitMqConsumer {
     private _RABBITMQ_URL: string;
@@ -9,53 +12,62 @@ export class RabbitMqConsumer {
     private _logService: LogService;
 
     constructor() {
-        this._RABBITMQ_URL = "amqp://localhost/";
+        /* Verify if the env data was initialized */
+        if (!process.env.RABBITMQ_URL) {
+            throw new AppError(`InvalidEvnData`, 500, `Invalid log consumer rabbitmq url`);
+        }
+        this._RABBITMQ_URL = process.env.RABBITMQ_URL;
         this._connection = null;
         this._channel = null;
         this._logService = new LogService();
     }
 
     async connection(): Promise<void> {
+        /* If the connection exists exit */
         if (this._connection && this._channel) return;
 
         try {
+            /* Initialize the rabbitmq log consumer connection */
             this._connection = await connect(this._RABBITMQ_URL);
-            console.log(`RabbitMQ consumer connected`);
 
+            /* Initialize the connection channel */
             this._channel = await this._connection.createChannel();
-            console.log(`Consumer connected to the channel`);
         } catch (error) {
-            console.error(`RabbitMQ connection error:`, error);
-            throw error; // Ensure the caller knows the connection failed
+            throw new AppError(`LogConsumerConnectionError`, 500, `Failed to initialize rabbitmq consumer connection: ${error}`);
         }
     }
 
+    /**
+     * 
+     * @param queue The name of the log queue
+     */
     async listenToQueue(queue: string) {
+        /* Initialize the consumer connection */
         await this.connection(); 
 
         try {
+            /* Initialize the consumer */
             await this._channel?.assertQueue(queue, { durable: true });
-
+            
             this._channel?.consume(queue, async (msg) => {
+                /* Check if the log message was not retrieved */
                 if (!msg) {
-                    console.error(`Failed to get the log data`);
-                    return;
+                    throw new AppError(`InvalidLogMessage`, 500, `Failed to retrieve the log consumer message`);
                 }
 
                 try {
-                    console.log("Consuming message...");
-
-                    const log = JSON.parse(msg.content.toString()) as LogMessage;
-                    console.log(log);
+                    /* Parse the log message */
+                    const log: LogMessage = JSON.parse(msg.content.toString());
+                    
+                    /* Send the log to the service layer to create a new log message */
                     await this._logService.createLog(log);
 
-                    this._channel?.ack(msg); // Acknowledge only if processing succeeds
+                    this._channel?.ack(msg);
                 } catch (error) {
-                    console.error(`Error processing log message:`, error);
-                    
-                    // Decide what to do with failed messages
-                    // this._channel?.nack(msg, false, true); // Requeue message
-                    this._channel?.ack(msg); // Discard failed message
+                    /* Discard the failed message */
+                    this._channel?.ack(msg);
+
+                    throw new AppError(`AssertLogConsumerError`, 500, `Failed to initialize the rabbitmq log consumer: ${error}`);
                 }
             });
 
@@ -67,11 +79,14 @@ export class RabbitMqConsumer {
 
     async closeConnection() {
         try {
+            /* If the connection is closed exit */
+            if (!this._channel && !this.connection) return;
+
             await this._channel?.close();
             await this._connection?.close();
             console.log(`RabbitMQ consumer connection closed`);
         } catch (error) {
-            console.error(`Error closing RabbitMQ connection:`, error);
+            throw new AppError(`LogConsumerConnectionError`, 500, `Failed to close the rabbitmq consumer connection: ${error}`);
         }
     }
 }

@@ -8,7 +8,7 @@ import { VersionDetails, FirebaseUser } from "../types/User";
 type NotificationDetails = {
     users: {
         id: string,
-        email: string,
+        email: string | undefined,
         message: string,
     }[],
     type: string,

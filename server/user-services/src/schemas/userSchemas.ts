@@ -10,7 +10,7 @@ export const createUserSchema = Joi.object({
         "string.empty": `"Display name" cannot be an empty string`,
         "string.min": `"Display name" must be at least 5 characters long`
     }),
-    email: Joi.string().email({minDomainSegments: 3, tlds: {allow: ['com', 'net', 'ro']}}).required().messages({
+    email: Joi.string().required().messages({
         "any.required": `"Email" is required to perform the operation`,
         "string.empty": `"Email" cannot be an empty string`,
     }),
@@ -73,7 +73,7 @@ export const updateEmailSchema = Joi.object({
         "any.required": `"User ID" is required to perform the operation`,
         "string.empty": `"User ID" cannot be an empty string`,
     }),
-    email: Joi.string().email({minDomainSegments: 3, tlds: {allow: ['com', 'net', 'ro']}}).required().messages({
+    email: Joi.string().required().messages({
         "any.required": `"Email" is required to perform the operation`,
         "string.empty": `"Email" cannot be an empty string`,
     }),
