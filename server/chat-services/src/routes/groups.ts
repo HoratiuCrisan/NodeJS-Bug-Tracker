@@ -74,6 +74,30 @@ groupRouter.put(
     GroupController.updateGroupPhoto,
 );
 
+groupRouter.put(
+    "/:grouopId/addMembers",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    GroupController.addMembers,
+);
+
+groupRouter.put(
+    "/:groupId/removeMembers",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    GroupController.removeMembers,
+);
+
+groupRouter.put(
+    "/:groupId/viewMessages",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    GroupController.viewMessages,
+);
+
 /* DELETE requests */
 
 groupRouter.delete(

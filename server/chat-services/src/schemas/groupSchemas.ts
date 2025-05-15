@@ -68,7 +68,7 @@ export const getGroupMessagesSchema = Joi.object({
         "number.min": `"Limit" must be equal or higher than 1`,
         "number.max": `"Limit" must be equal or lower than 10`,
     }),
-    lastMessage: Joi.optional(),
+    startAfter: Joi.optional(),
 });
 
 /* Schema for retrieving unread messages from the group chat */

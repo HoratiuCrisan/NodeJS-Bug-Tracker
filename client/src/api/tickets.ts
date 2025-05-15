@@ -1,7 +1,48 @@
-import axios from "axios"
-import { env } from "process";
+import { env } from "../utils/evnValidation";
+import { getAxiosInstance } from "./axiosInstance";
 import { Ticket, RequestTicket, TicketCard, TicketObject } from "../utils/types/Ticket"
 
+const axios = getAxiosInstance(env.REACT_APP_TICKETS_END_POINT);
+
+/* POST reqeusts */
+
+/**
+ * 
+ * @param {string} title The title of the ticket
+ * @param {string} description The description of the ticket
+ * @param {string} priority The type of priority of the ticket
+ * @param {string} type The type of ticket
+ * @param {number} deadline The deadline of the ticket
+ * @returns {Promsie<Ticket>} The ticket object from the server
+ */
+const createTicket = async (
+    title: string,
+    description: string,
+    priority: string,
+    type: string,
+    deadline: number
+): Promise<Ticket> => {
+    /* Send the post request to the server */
+    const response = await axios.post("/", {title, description, priority, type, deadline});
+
+    /* Return the data of the axios response */
+    return response.data.data as Ticket;
+} 
+
+/* GET requests */
+
+/**
+ * Only admins can fetch the tickets that are not associated with them 
+ * 
+ * @param {number} limit The number of tickets to retrieve at a fetching request 
+ * @param {string} orderBy The order criteria of the tickets
+ * @param {string} orderDirection The ordering direction
+ * @param {string | undefined} searchQuery The query search from the user
+ * @param {string | undefined} priority The priority of the tickets
+ * @param {stirng | undefined} status The status of the tickets
+ * @param {string | undefined} startAfter The ID of the last ticket retrieved at the last fetching request
+ * @returns {Promise<TicketCard[]>} The list of retrieved tickets with some data of the author
+ */
 const getAllTickets = async (
     limit: number, 
     orderBy: string, 
@@ -11,51 +52,34 @@ const getAllTickets = async (
     status?: string,
     startAfter?: string
 ): Promise<TicketCard[]> => {
-    try {
-        
-        const response = await axios.get(`${process.env.TICKETS_END_POINT}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`);
+    /* Send the request to the server */
+    const response = await axios.get(`?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}&searchQuery=${searchQuery}&priority=${priority}&status=${status}&startAfter=${startAfter}`);
 
-        const responseData = response.data;
+    /* Add the data of the response to a list of tickets that also have the data of their authors */
+    const ticketCards: RequestTicket[] = response.data.data;
 
-        if (!responseData.success) {
-            throw new Error(`Invalid request data`);
+    /* Iterate over each ticket card and return the ticket data with the profile photo of the author */
+    return ticketCards.map((card: RequestTicket) => {
+        return {
+            ...card.ticket,
+            authorPhoto: card.user.photoUrl
         }
-
-        const ticketCards: RequestTicket[] = responseData.data;
-
-        const tickets: TicketCard[] = ticketCards.map((card: RequestTicket) => {
-            return {
-                ...card.ticket,
-                authorPhoto: card.user.photoUrl
-            };
-        });
-
-        return tickets;
-    } catch (error) {   
-        console.error(error)
-        throw new Error(`Failed to retrieve tickets data`);
-    }
+    });
 }
 
-const getUserTicketById = async(userId: string, ticketId: string) => {
-    try {
-        const response = await axios.get(`${process.env.TICKETS_END_POINT}/${userId}/${ticketId}`);
-
-        const responseData = response.data;
-
-        if (!responseData.success) {
-            throw new Error(`Invalid request data`);
-        }
-
-        const ticket: TicketObject = responseData.data;
-        
-        return ticket;
-    } catch (error) { 
-        console.error(error)
-    }
-}
-
-const getTicketsByUsername = async(
+/**
+ * 
+ * @param userId The ID of the user that sent the request
+ * @param {number} limit The number of tickets to retrieve at a fetching request 
+ * @param {string} orderBy The order criteria of the tickets
+ * @param {string} orderDirection The ordering direction
+ * @param {string | undefined} searchQuery The query search from the user
+ * @param {string | undefined} priority The priority of the tickets
+ * @param {stirng | undefined} status The status of the tickets
+ * @param {string | undefined} startAfter The ID of the last ticket retrieved at the last fetching request
+ * @returns {Promise<TicketCard[]>} The list of retrieved tickets with some data of the author
+ */
+const getUserTickets = async(
     userId: string,
     limit: number,
     orderBy: string,
@@ -65,60 +89,88 @@ const getTicketsByUsername = async(
     status?: string,
     startAfter?: string
 ): Promise<TicketCard[]> => {
-    try {
-        const response = await axios.get(`
-            ${process.env.TICKETS_END_POINT}/${userId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}`
-        );
+    /* Send the request to the server */
+    const response = await axios.get(`/${userId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}&searchQuery=${searchQuery}&priority=${priority}&status=${status}&startAfter=${startAfter}`);
+    
+    /* Add the data of the response to a list of tickets that also have the data of their authors */
+    const ticketCards: RequestTicket[] = response.data.data;
 
-        const responseData = response.data;
-
-        if (!responseData.success) {
-            throw new Error(`Invalid request data`);
+    /* Iterate over each ticket card and return the ticket data with the profile photo of the author */
+    return ticketCards.map((card: RequestTicket) => {
+        return {
+            ...card.ticket,
+            authorPhoto: card.user.photoUrl
         }
-
-        const ticketCards: RequestTicket[] = responseData.data;
-
-        const tickets: TicketCard[] = ticketCards.map((card: RequestTicket) => {
-            return {
-                ...card.ticket,
-                authorPhoto: card.user.photoUrl
-            };
-        });
-
-        return tickets;
-    } catch (error) {
-        console.error(error);
-        throw new Error("Error at sending the request! " + error);
-    }
+    });
 }
 
-const updateTicketById = async(id: string, updateData: Ticket, author: string | null) => {
-    if (!author) {
-        throw new Error("No author provided!");
-    }
+/**
+ * 
+ * @param {string} userId The ID of the user that sent the request
+ * @param {string} ticketId The ID of the ticket
+ * @returns {Promise<TicketObject>} The data of the ticket and the data of the author and handler if assigend
+ */
+const getUserTicketById = async (userId: string, ticketId: string): Promise<TicketObject> => {
+    /* Send the data to the server */
+    const response = await axios.get(`/${userId}/${ticketId}`);
 
-    try {
-        const response = await axios.put(`${process.env.TICKETS_END_POINT}/${id}`, {updateData, author})
-
-        if (!response)
-            return null
-        return response
-    } catch (error) {
-        console.error(error)
-    }
+    /* Return the data of the response */
+    return response.data.data as TicketObject;
 }
 
-const deleteTicketById = async (id: string) => {
-    try {
-        const response = await axios.delete(`${process.env.TICKETS_END_POINT}/${id}`)
+/* PUT requests */
 
-        if (!response)
-            return null
-
-        return response
-    } catch (error) {
-        console.error(error)
-    }
+/**
+ * 
+ * @param {string} ticketId The ID of the ticket to update
+ * @param {Ticket} data The updated ticket data
+ * @returns {Promise<Ticket>} The updated ticket data
+ */
+const updateTicketById = async(ticketId: string, data: Ticket): Promise<Ticket> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/${ticketId}`, data);
+    
+    /* Return the data of the response */
+    return response.data.data;
 }
 
-export {getAllTickets, getUserTicketById, updateTicketById, deleteTicketById, getTicketsByUsername}
+/**
+ * 
+ * @param {string} ticketId The ID of the ticket 
+ * @param {string} handlerId The ID of the new ticket handler
+ * @param {string} handlerEmail The email of the handler
+ * @param {string} authorEmail The email address of the ticket author
+ * @returns {Promise<Ticket>} The updated ticket data
+ */
+const assignTicket = async (ticketId: string, handlerId: string, handlerEmail: string, authorEmail: string): Promise<Ticket> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/assign/${ticketId}`, {handlerId, handlerEmail, authorEmail});
+
+    /* Return the response data */
+    return response.data.data;
+}
+
+/* DELETE requests */
+
+/**
+ * 
+ * @param {string} ticketId The ID of the ticket
+ * @returns {Promise<string>} The success message 
+ */
+const deleteTicketById = async (ticketId: string): Promise<string> => {
+    /* Send the request to the server */
+    const response = await axios.delete(`/${ticketId}`);
+
+    /* Return the data of the response */
+    return response.data.data;
+}
+
+export {
+    createTicket, 
+    getAllTickets,
+    getUserTickets, 
+    getUserTicketById, 
+    updateTicketById, 
+    assignTicket, 
+    deleteTicketById
+};

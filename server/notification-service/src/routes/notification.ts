@@ -9,7 +9,7 @@ const router = Router();
 /* GET requests */
 
 router.get(
-    "/:userId/:notificationId",
+    "/:notificationId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
@@ -17,7 +17,7 @@ router.get(
 );
 
 router.get(
-    "/:userId",
+    "/",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
@@ -27,7 +27,7 @@ router.get(
 /* PUT requests */
 
 router.put(
-    "/:userId/:notificationId",
+    "/:notificationId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),

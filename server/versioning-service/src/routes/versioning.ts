@@ -13,7 +13,7 @@ const router = Router();
 /* GET requests */
 
 router.get(
-    "/:type/:itemId",
+    "/:type/:itemId/:versionId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["developer", "project-manager", "admin"]),
@@ -21,7 +21,7 @@ router.get(
 );
 
 router.get(
-    "/:type/",
+    "/:type/:itemId",
     verifyToken,
     checkRequestError,
     verifyUserRole(["developer", "project-manager", "admin"]),

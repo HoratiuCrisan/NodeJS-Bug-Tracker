@@ -168,17 +168,24 @@ export class GroupController {
                     userId: req.user?.user_id, /* Get the user ID from the request */
                     groupId: req.params.groupId, /* Get the group ID from the request params */
                     limit: Number(req.query.limit), /* Get the amount of messages to retrieve from the request query */
-                    lastMessage: String(req.query.lastMessage), /* Get the last message retrieved before from the request query */
+                    startAfter: String(req.query.startAfter), /* Get the last message retrieved before from the request query */
                 },
                 getGroupMessagesSchema, /* Validate the input data using the schema */
-            )
+            );
+
+            let startAfter = undefined;
+            
+            /* Check if the ID of the last retrieved message was rechieved */
+            if (inputData.startAfter) {
+                startAfter = String(inputData.startAfter);
+            }
 
             /* Send the data to the service layer to retrieved "limit" number of messages */
             const {data: groupMessages, duration} = await measureTime(async () => groupService.getGroupMessages(
                 inputData.userId!,
                 inputData.groupId,
                 inputData.limit,
-                inputData.lastMessage,
+                startAfter,
             ), `Get group messages`);
             
             /* Return the success message with the messages list */

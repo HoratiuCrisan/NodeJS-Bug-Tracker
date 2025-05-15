@@ -4,6 +4,22 @@ import { UserController } from "../controller/userController";
 
 const router = Router();
 
+router.post(
+    "/",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    UserController.createUser,
+);
+
+router.post(
+    "/login",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    UserController.loginUser,
+);
+
 router.get(
     "/",
     verifyToken,

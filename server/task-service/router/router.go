@@ -93,7 +93,7 @@ func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces
 
 		// DELETE routes
 		r.Delete("/{taskId}", taskController.DeleteTaskById)
-		r.Delete("/{taskId}/{subtaskId}", taskController.DeleteSubtaskById)
-		r.Delete("/{taskId}/{responseId}", taskController.DeleteResponseById)
+		r.Delete("/{taskId}/subtasks/{subtaskId}", taskController.DeleteSubtaskById)
+		r.Delete("/{taskId}/responses/{responseId}", taskController.DeleteResponseById)
 	})
 }

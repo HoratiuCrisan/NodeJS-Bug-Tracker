@@ -1,65 +1,56 @@
-import { NOTIFICATIONS_END_POINT } from "./endpoint";
-import axios from "axios";
+import { getAxiosInstance } from "./axiosInstance";
 import { Notification } from "../utils/types/Notification";
+import { env } from "../utils/evnValidation";
 
-const getUserNotifications = async (userId: string) => {
-    if (!userId) {
-        throw new Error("Error! User id was not provided!");
-    }
+/* Initialize the axios instance for the notifications service */
+const axios = getAxiosInstance(env.REACT_APP_NOTIFICATIONS_END_POINT);
 
-    try {
-        const response = await axios.get(`${NOTIFICATIONS_END_POINT}/${userId}`);
-        
-        if (response) {
-            return response.data;
-        }
-    } catch (error) {
-        console.error("Error getting user notifications from the server: ", error);
-    } 
+/* POST requests */
+
+/* GET requests */
+
+/**
+ * 
+ * @param {string} notificationId The ID of the notification
+ * @returns {Promise<Notification>} The data of the notification
+ */
+const getNotification = async (notificationId: string): Promise<Notification> => {
+    /* Send the request to the server */
+    const response = await axios.get(`/${notificationId}`);
+
+    /* Return the data of the response */
+    return response.data.data as Notification;
 }
 
-const getNotification = async (userId: string, notificationId: number) => {
-    if (!userId) {
-        throw new Error("Error! User id was not provided!");
-    }
+/**
+ * 
+ * @param {number} limit The number of notifications to retrieve at a fetching request
+ * @param {string | undefined} startAfter The ID of the last notification retrieved at the previous fetching request
+ * @returns {Promise<Notification[]>} The list of retrieved notifications 
+ */
+const getUserNotifications = async (limit: number, startAfter?: string): Promise<Notification[]> => {
+    /* Send the request to the server */
+    const response = await axios.get(`?limit=${limit}&startAfter=${startAfter}`);
 
-    if (notificationId < 0 || notificationId === null || notificationId === undefined) {
-        throw new Error("Error! Notification id was not provided!");
-    }
-
-    try {
-        const response = await axios.get(`${NOTIFICATIONS_END_POINT}/${userId}/${notificationId}`);
-
-        if (response) {
-            return response.data;
-        }
-
-        return response;
-    } catch (error) {
-        console.error("Error getting notification");
-    }
+    /* Return the list of notifications from the response data */
+    return response.data.data as Notification[];
 }
 
-const updateUserNotification = async (userId: string, notificationId: number) => {
-    if (!userId) {
-        throw new Error("Error! User id was not provided!");
-    }
+/**
+ * 
+ * @param {string} notificationId The ID of the notification to read
+ * @returns {Promise<Notification>} The updated notification data
+ */
+const readNotification = async(notificationId: string): Promise<Notification> => {
+    /* Send the reqeust to the server */
+    const response = await axios.put(`/${notificationId}`);
 
-    if (!notificationId || notificationId < 0) {
-        throw new Error("Error! Notification id is not valid");
-    }
-
-    try {
-        const response = await axios.put(`${NOTIFICATIONS_END_POINT}/${userId}/${notificationId}`);
-    
-        if (!response) {
-            return response;
-        }
-
-        return response.data;
-    } catch (error) {
-        console.error("Error updating the notification");
-    }
+    /* Return the updated notification data from the response data */
+    return response.data.data as Notification;
 }
 
-export { getUserNotifications, getNotification, updateUserNotification}
+export {
+    getNotification,
+    getUserNotifications,
+    readNotification,
+};

@@ -369,7 +369,6 @@ export class TicketController {
 
     static async assignTicket(req: CustomRequest, res: Response, next: NextFunction) {
         try {
-            console.log(req.user?.user_id)
             /* Validate the data based on the schema */
             const inputData = validateData(
                 {

@@ -50,7 +50,7 @@ router.get(
 );
 
 router.get(
-    "/:conversationId/messages/unread/",
+    "/:conversationId/messages/unread",
     verifyToken,
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),

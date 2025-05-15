@@ -1,5 +1,4 @@
 import axios from 'axios'
-import {TICKETS_END_POINT} from './endpoint'
 
 const verifyToken = (token: string) => {
     const headers = {
@@ -7,7 +6,7 @@ const verifyToken = (token: string) => {
         'Content-Type': 'application/json'
     }
 
-    const response = axios.get(`${TICKETS_END_POINT}/api/authorization`, {headers})
+    const response = axios.get(`${process.env.TICKETS_END_POINT}/api/authorization`, {headers})
         .then(response => {
              console.log(response.data)
         })

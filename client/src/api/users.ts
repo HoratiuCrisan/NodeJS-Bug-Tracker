@@ -1,73 +1,152 @@
-import axios from "axios"
-import { PROJECT_END_POINT, USERS_END_POINT } from "./endpoint"
+import { getAxiosInstance } from "./axiosInstance";
+import { env } from "../utils/evnValidation";
+import { User } from "../utils/types/User";
 
-const getUserData = async (userId: string) => {
-    if (!userId || userId.length === 0) {
-        throw new Error (`User ${userId} is not a valid user`);
-    }   
+/* Initialize the axios instance for the users service */
+const axios = getAxiosInstance(env.REACT_APP_USERS_END_POINT);
 
-    console.log("user data hereeeeeeeeeee")
+/* POST requests */
 
-    try {
-        const response = await axios.get(`${USERS_END_POINT}/${userId}`);
+const createUser = async (): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.post("/");
 
-        if (response) {
-            console.log(response.data.data);
-            return response.data.data;
-        }
-    } catch (error) {
-        console.error(error);
-    }
+    /* Return the data of the response */
+    return response.data.data as User;
 }
 
-const getUsers = async () => {
-    try {
-        const response = await axios.get(`${PROJECT_END_POINT}/users`)
+const loginUser = async (): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.post(`/login`);
 
-    if (!response )
-        return null
-
-    return response.data.data
-    } catch (err) {
-        console.error(err)
-    }
-
+    /* Return the response data */
+    return response.data.data as User;
 }
 
-const setUserRole = async (uid: string, role: string) => {
-    if (uid === null || uid === undefined || uid.length === 0) {
-        throw new Error("Error! No user id was specified!");
-    }
+/* GET requests */
 
-    if (role === null || role === undefined || role.length === 0) {
-        throw new Error("Error! No role was specified!");
-    }
+/**
+ * 
+ * @param {string} orderBy The order criteria
+ * @param {string} orderDirection The direction of the ordering
+ * @param {number} limit The number of users to retireve at a fetching requests
+ * @param {string | undefined} startAfter The ID of the last user retrieved at the previous fetching request
+ * @returns {Promise<User[]>} The list of retrieved users
+ */
+const getUsers = async (orderBy: string, orderDirection: string, limit: number, startAfter?: string): Promise<User[]> => {
+    /* Send the request to the server */
+    const response = await axios.get(`?orderBy=${orderBy}&orderDirection=${orderDirection}&limit=${limit}&startAfter=${startAfter}`);
 
-    try {
-        const response = await axios.post(`${USERS_END_POINT}/setClaims`, {
-            uid: uid,
-            role: role,
-        });
-
-        return response.statusText;
-    } catch (error) {
-        console.error("Error at sending the request: " + error);
-        throw new Error("Error sending the request: " + error);
-    }
+    /* Return the list of users from the response data */
+    return response.data.data as User[];
 }
 
-const getAllUsers = async () => {
-    try {
-        const response = await axios.get(`${USERS_END_POINT}`);
+/**
+ * 
+ * @param {string} userId The ID of the user to retrieve
+ * @returns {Promise<User>} The retrieved user data
+ */
+const getUser = async (userId: string): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.get(`/${userId}`);
 
-        if (response) {
-            return response.data.data;
-        }
-
-        return null
-    } catch (error) {
-        console.error("Error at sending the request: " + error);
-    }
+    /* Return the user data from the response data */
+    return response.data.data as User;
 }
 
-export {getUsers, setUserRole, getAllUsers, getUserData}
+/* PUT requests */
+
+/**
+ * 
+ * @param displayName The new username of the user
+ * @returns {Promsie<User>} The updated user data
+ */
+const updateDisplayName = async (displayName: string): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/name`, displayName);
+
+    /* Return the udpated user data from the response data */
+    return response.data.data as User;
+}
+
+/**
+ * 
+ * @param {string} email The new user email
+ * @returns {Promise<User>} The updated user data
+ */
+const updateEmail = async (email: string): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/email`, email);
+
+    /* Return the udpated user data from the response data */
+    return response.data.data as User;
+}
+
+/**
+ * 
+ * @param {string} photoUrl The new user photoUrl
+ * @returns {Promise<User>} The updated user data
+ */
+const updatePhotoUrl = async (photoUrl: string): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/photo`, photoUrl);
+
+    /* Return the updated user data from the response data */
+    return response.data.data as User;
+}
+
+/**
+ * 
+ * @param {string} password The new account password
+ * @returns {Promise<string>} The success message 
+ */
+const updatePassword = async (password: string): Promise<string> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/password`, password);
+
+    /* Return the response data */
+    return response.data.data;   
+}
+
+/**
+ * 
+ * @param {string} userId The Id of the user to update
+ * @param {string} role The new role of the user 
+ * @param {string} userEmail The email address of the updated user
+ * @returns {Promise<User>} The updated data of the user
+ */
+const updateRole = async (userId: string, role: string, userEmail: string): Promise<User> => {
+    /* Send the request to the server */
+    const response = await axios.put(`/role/${userId}`, {role, userEmail});
+
+    /* Return the udpated user data from the response data */
+    return response.data.data as User;
+}
+
+/* DELETE reqeusts */
+
+/**
+ * 
+ * @param {string} userId The ID of the user to be deleted
+ * @returns {Promise<string>} The success message
+ */
+const deleteUser = async (userId: string): Promise<string> => {
+    /* Send the request to the server */
+    const response = await axios.delete(`/${userId}`);
+
+    /* Return the response data */
+    return response.data.data;
+}
+
+export {
+    createUser, 
+    loginUser, 
+    getUsers, 
+    getUser, 
+    updateDisplayName, 
+    updateEmail, 
+    updatePassword, 
+    updatePhotoUrl, 
+    updateRole, 
+    deleteUser
+};
