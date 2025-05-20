@@ -1,6 +1,6 @@
 import { env } from "../utils/evnValidation";
 import { getAxiosInstance } from "./axiosInstance";
-import { Ticket, RequestTicket, TicketCard, TicketObject } from "../utils/types/Ticket"
+import { Ticket, RequestTicket, TicketCardType, TicketObject } from "../types/Ticket"
 
 const axios = getAxiosInstance(env.REACT_APP_TICKETS_END_POINT);
 
@@ -41,7 +41,7 @@ const createTicket = async (
  * @param {string | undefined} priority The priority of the tickets
  * @param {stirng | undefined} status The status of the tickets
  * @param {string | undefined} startAfter The ID of the last ticket retrieved at the last fetching request
- * @returns {Promise<TicketCard[]>} The list of retrieved tickets with some data of the author
+ * @returns {Promise<TicketCardType[]>} The list of retrieved tickets with some data of the author
  */
 const getAllTickets = async (
     limit: number, 
@@ -51,7 +51,7 @@ const getAllTickets = async (
     priority?: string,
     status?: string,
     startAfter?: string
-): Promise<TicketCard[]> => {
+): Promise<TicketCardType[]> => {
     /* Send the request to the server */
     const response = await axios.get(`?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}&searchQuery=${searchQuery}&priority=${priority}&status=${status}&startAfter=${startAfter}`);
 
@@ -77,7 +77,7 @@ const getAllTickets = async (
  * @param {string | undefined} priority The priority of the tickets
  * @param {stirng | undefined} status The status of the tickets
  * @param {string | undefined} startAfter The ID of the last ticket retrieved at the last fetching request
- * @returns {Promise<TicketCard[]>} The list of retrieved tickets with some data of the author
+ * @returns {Promise<TicketCardType[]>} The list of retrieved tickets with some data of the author
  */
 const getUserTickets = async(
     userId: string,
@@ -88,7 +88,7 @@ const getUserTickets = async(
     priority?: string,
     status?: string,
     startAfter?: string
-): Promise<TicketCard[]> => {
+): Promise<TicketCardType[]> => {
     /* Send the request to the server */
     const response = await axios.get(`/${userId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}&searchQuery=${searchQuery}&priority=${priority}&status=${status}&startAfter=${startAfter}`);
     
@@ -128,7 +128,7 @@ const getUserTicketById = async (userId: string, ticketId: string): Promise<Tick
  */
 const updateTicketById = async(ticketId: string, data: Ticket): Promise<Ticket> => {
     /* Send the request to the server */
-    const response = await axios.put(`/${ticketId}`, data);
+    const response = await axios.put(`/${ticketId}`, {data});
     
     /* Return the data of the response */
     return response.data.data;

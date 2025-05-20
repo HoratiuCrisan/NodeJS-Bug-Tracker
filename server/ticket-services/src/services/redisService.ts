@@ -96,6 +96,8 @@ export class RedisService {
      */
     async cachedTickets(keys: string[]): Promise<Ticket[]> {
         /* Send the data to the repository layer to cache the list of IDs */
+        if (keys.length === 0) return [];
+
         return await this._redisTicketRepository.cachedTickets(keys);
     }
 }

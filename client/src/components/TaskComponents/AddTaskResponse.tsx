@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import { Task } from '../../utils/types/Project'
+import { Task } from '../../types/Tasks'
 import { TextEditor } from '../TextEditor'
 
 interface Props {

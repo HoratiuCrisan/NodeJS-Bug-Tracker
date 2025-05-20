@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import { Login } from './authentication/Login/Login';
 import { Register } from './authentication/Register/Register';
 import { Home } from './pages/Home';
@@ -15,30 +14,40 @@ import { Notifications } from './pages/Notifications';
 import { NotificationDetails } from './components/NotificationComponents/NotificationDetails';
 import { Users } from './pages/Users';
 import { Admin } from './pages/Admin';
+import { UserProvider } from './context/UserProvider';
 
 function App() {
-
   return (
-    <div className='App'>
-      <Routes>
-        <Route element={<PrivateRoutes />}>
-          <Route element={<LayoutPages />} path='/'>
-            <Route element={<Home />} path='' />
-            <Route element={<Projects />} path='/projects' />
-            <Route element={<NewTicket />} path='/create-ticket' />
-            <Route element={<TicketDetails />} path='/tickets/:id' />
-            <Route element={<AddProjectForm />} path='/create-project' />
-            <Route element={<ProjectDetails />} path='/projects/:id' />
-            <Route element={<Messages />} path='/messages' />
-            <Route element={<Notifications />} path='/notifications' />
-            <Route element={<NotificationDetails />} path='/notifications/:userId/:notificationId' />
-            <Route element={<Users />} path='/users' />
-            <Route element={<Admin />} path='/admin' />
+    <div className="App">
+  
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Private routes */}
+          <Route element={<PrivateRoutes />}>
+            <Route
+              element={
+                <UserProvider>
+                  <LayoutPages />
+                </UserProvider>
+              }
+            >
+              <Route index element={<Home />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="create-ticket" element={<NewTicket />} />
+              <Route path="tickets/:ticketId" element={<TicketDetails />} />
+              <Route path="create-project" element={<AddProjectForm />} />
+              <Route path="projects/:id" element={<ProjectDetails />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="notifications/:userId/:notificationId" element={<NotificationDetails />} />
+              <Route path="users" element={<Users />} />
+              <Route path="admin" element={<Admin />} />
+            </Route>
           </Route>
-        </Route>
-        <Route path='/login' element={<Login />} />
-        <Route path='/register' element={<Register />} />
-      </Routes>
+        </Routes>
     </div>
   );
 }

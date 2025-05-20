@@ -76,7 +76,8 @@ export class TicketController {
         try {
             /* Validate the data based on the schema */
             const inputData = validateData(
-                {
+                {   
+                    userId: req.user?.user_id,
                     limit: Number(req.query.limit), /* The max number of tickets to retrieve at a time */
                     orderBy: String(req.query.orderBy), /* The order criteria */
                     orderDirection: String(req.query.orderDirection), /* The direction of the order */
@@ -115,6 +116,7 @@ export class TicketController {
 
             /* Send the data to the service layer to retrieve the list of tickets */
             const { data: tickets, duration } = await measureTime(async () => ticketService.getAllTickets(
+                inputData.userId!,
                 inputData.limit,
                 inputData.orderBy,
                 inputData.orderDirection,
@@ -163,6 +165,7 @@ export class TicketController {
 
     static async getUserTickets(req: CustomRequest, res: Response, next: NextFunction) {
         try {
+            
             /* Validate the data based on schema */
             const inputData = validateData(
                 {
@@ -178,27 +181,29 @@ export class TicketController {
                 getUserTicketsSchema, /* The validation schema */
             );
 
+            console.log(inputData);
+            
             let searchQuery = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
             /* Check if the search query was sent */
-            if (searchQuery) {
+            if (inputData.searchQuery && inputData.searchQuery !== "undefined") {
                 searchQuery = String(searchQuery);
             }
 
             /* Check if the status was sent */
-            if (inputData.status) {
+            if (inputData.status && inputData.startAfter !== "undefined") {
                 /* Convert the status to a string */
                 status = String(inputData.status);
             }
 
             /* Check if the priority was sent */
-            if (inputData.priority) {
+            if (inputData.priority && inputData.priority !== "undefined") {
                 /* Convert the priority to a string */
                 priority = String(inputData.priority);
             }
 
             /* Check if the ID of the last ticket was sent */
-            if (startAfter) {
+            if (inputData.startAfter && inputData.startAfter != "undefined" ) {
                 /* Convert the ID to a string */
                 startAfter = String(inputData.startAfter);
             }
@@ -214,7 +219,7 @@ export class TicketController {
                 priority,
                 startAfter
             ), `Get-user-tickets`);
-    
+
             /* Generate the log data */
             const logDetails = {
                 message: `User "${req.user?.user_id}" retrieved "${inputData.limit}" of "${inputData.userId}'s" tickets`,
@@ -252,6 +257,7 @@ export class TicketController {
 
     static async getUserTicketById(req: CustomRequest, res: Response, next: NextFunction) {
         try {
+            console.log(req.user?.role, req.user?.user_id);
             /* Validate the data based on the schema */
             const inputData = validateData(
                 {

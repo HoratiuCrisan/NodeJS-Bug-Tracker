@@ -5,6 +5,7 @@ import {
     createUserSchema,
     loginUserSchema,
     getUsersSchema,
+    getUsersDataSchema,
     getUserSchema,
     updateDisplayNameSchema,
     updateEmailSchema,
@@ -22,22 +23,22 @@ export class UserController {
         try {
             const inputData = validateData(
                 {
-                    userId: req.user?.user_id, /* The ID of the new user */
-                    displayName: req.user?.name, /* The username of the user */
-                    email: req.user?.email, 
-                    photoUrl: req.user?.picture,
-                    role: req.user?.role, /* The role of the user */
+                    userId: req.body.userId, /* The ID of the new user */
+                    displayName: req.body.displayName, /* The username of the user */
+                    email: req.body.email, 
+                    photoUrl: req.body.photoUrl,
                 },
                 createUserSchema, /* Validate the data based on the schema */
             );
+
+            console.log(req.user);
             
             /* Send the data to the service layer to create the user */
             const { data: user, duration } = await measureTime(async () => userService.createUser(
-                inputData.userId!,
-                inputData.displayName!,
-                inputData.email!,
-                inputData.photoUrl!,
-                inputData.role!
+                inputData.userId,
+                inputData.displayName,
+                inputData.email,
+                inputData.photoUrl,
             ), `Create-user`);
 
             /* Generate log data */
@@ -149,6 +150,46 @@ export class UserController {
         }
     }
 
+    public static async getUsersData(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id,
+                    userIds: req.body.userIds,
+                },
+                getUsersDataSchema
+            );
+
+            /* Send the request to the service layer to retrieve the users data */
+            const {data: users, duration } = await measureTime(
+                async () => userService.getUsersData(inputData.userIds), 
+                "Get-Users-Data"
+            );
+
+            /* Generate log data */
+            const logDetails = {
+                message: `User "${req.user?.user_id}" retrieved users data`,
+                type: `info`,
+                status: 201,
+                duration,
+                user: req.user!,
+                data: users,
+            };
+
+            /* Return the success message with the users list */
+            await handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `Users retreived successfully`,
+                data: users,
+                logDetails,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     public static async getUser(req: CustomRequest, res: Response, next: NextFunction) {
         try {
             const inputData = validateData(
@@ -183,6 +224,8 @@ export class UserController {
                 data: user,
                 logDetails,
             });
+
+            return;
         } catch (error) {
             next(error);
         }
@@ -356,10 +399,12 @@ export class UserController {
                 {
                     userId: req.params.userId, /* The ID of the user that sent the request */
                     role: req.body.role, /* The new role of the user */
-                    userEmail: req.body.email,
+                    userEmail: req.body.userEmail,
                 },
                 updateUserRoleSchema, /* Validate the data based on the schema */
             );
+
+            console.log(inputData);
 
             /* Send the data to the service layer to update the role of the user */
             const { data: user, duration } = await measureTime(

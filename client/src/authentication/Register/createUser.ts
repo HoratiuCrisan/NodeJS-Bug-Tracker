@@ -1,9 +1,17 @@
 import { auth, dataBase } from "../../config/firebase"
 import { doc, setDoc } from "firebase/firestore"
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth"
-import {setUserRole} from "../../api/users"; 
+import { createUserWithEmailAndPassword, updateProfile, User } from "firebase/auth"
+import {createNewUser} from "../../api/users"; 
 
-const createUser = async (email: string, password: string, displayName: string, photoURL: string) => {
+/**
+ * 
+ * @param {string} email The email address of the user
+ * @param {string} password The password of the user
+ * @param {string} displayName The username of the user
+ * @param {string} photoURL The profile photo of the user
+ * @returns {User} The firebase user data
+ */
+const createUser = async (email: string, password: string, displayName: string, photoURL: string): Promise<User> => {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
@@ -28,34 +36,30 @@ const createUser = async (email: string, password: string, displayName: string, 
             role: "user"
         });
 
-        /* Set the claims for the user */
-
-        const response = await setUserRole(user.uid, "user");
-
-        
-        /* Refresh the token to apply the new claims */
-        if (response) {
-            await user.getIdToken(true);
-            console.log("token " + await user.getIdToken());
+        if (!user.email) {
+            throw new Error(`User email was not rechieved`);
         }
 
+        /* Add the user into the users collection */
+        await createNewUser(user.uid!, email, displayName, photoURL);
+
         return user;
-    } catch (error: unknown) {
-        if (error instanceof Error) { 
-            switch(error.message) {
-                case 'auth/email-already-in-use':
-                    return `Email address already in use`
-                case 'auth/invalid-email':
-                    return  `Email address is invalid`
-                case 'auth/operation-not-allowed':
-                    return `Error during sign up!`
-                case 'auth/weak-password':
-                    return `Password is not strong enaug!`
+    } catch (error: any) {
+        if (error.code) {
+            switch (error.code) {
+                case "auth/email-already-in-use":
+                    throw new Error(`Email address already in use`);
+                case "auth/invalid-email":
+                    throw new Error(`Email address is invalid`);
+                case "auth/operation-not-allowed":
+                    throw new Error(`Error during sign up, operation not allowed`);
+                case "auth/weak-password":
+                    throw new Error(`Password is too weak`);
                 default:
-                    return  error.message
-            } 
+                    throw new Error(error.message || `An unexpected error occured during the sign up process `);
+            }     
         } else {
-            return "An unknown error occured";
+            throw new Error(`An unknown error occured`);
         }
     }
 }

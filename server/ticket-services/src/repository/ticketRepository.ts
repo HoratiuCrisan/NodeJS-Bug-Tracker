@@ -248,6 +248,8 @@ export class TicketRepository {
                 throw new AppError(`TicketNotFound`, 404, `Ticket not found`);
             }
 
+            console.log(ticketRef.data());
+
             /* Return the ticket data */
             return ticketRef.data() as Ticket;
             },

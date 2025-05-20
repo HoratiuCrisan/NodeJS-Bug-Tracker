@@ -69,8 +69,10 @@ export class VersionController {
 
             let lastItem = undefined;
 
+            console.log(inputData);
+
             /* Check if the ID of the last item retrieved at the previous fetching request was sent */
-            if (inputData.startAfter) {
+            if (inputData.startAfter && inputData.startAfter != "undefined") {
                 /* Convert the ID to a string and store it in the variable created above */
                 lastItem = String(inputData.startAfter);
             }

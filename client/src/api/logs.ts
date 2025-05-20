@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { LogMessage } from "../utils/types/Logs";
+import { LogMessage } from "../types/Logs";
 import { env } from "../utils/evnValidation";
 
 /* Initializd the axios instance for the logs service */

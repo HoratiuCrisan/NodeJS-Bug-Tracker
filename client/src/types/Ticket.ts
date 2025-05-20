@@ -25,7 +25,7 @@ export type RequestTicket = {
     user: User,
 }
 
-export type TicketCard = {
+export type TicketCardType = {
     authorPhoto: string;
     id: string;
     authorId: string;
@@ -45,18 +45,12 @@ export interface TicketProps {
     ticket: Ticket
 }
 
-export interface TicketFormData {
-    title: string
-    description: string
-    priority: {
-        value: string
-        label: string
-    }
-    type: {
-        value: string
-        label: string
-    }
-    deadline: string
+export type TicketFormDataType = {
+    title: string;
+    description: string;
+    priority: { value: string, label: string };
+    type: { value: string, label: string };
+    deadline: number;
 }
 
 export interface TicketOptions {
@@ -64,8 +58,20 @@ export interface TicketOptions {
     label: string
 }
 
+export type TicketFormType = {
+    formData: TicketFormDataType;
+    formError: string | null;
+    onSubmit: (e: React.FormEvent) => void;
+    onInputChange: (
+        value: string | number | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | undefined,
+        field: keyof TicketFormDataType
+    ) => void;
+    priority: TicketOptions[];
+    type: TicketOptions[];
+}
+
 export interface TicketFormProps {
-    formData: TicketFormData
+    formData: TicketFormDataType
     formError: string | null
     onSubmit: (e: React.FormEvent) => void
     onInputChange: (
@@ -79,9 +85,9 @@ export interface TicketFormProps {
 }
 
 export interface TicketsOrderProps {
-    items: TicketCard[]
+    items: TicketCardType[]
     options: {label: string, value: string}[]
-    setItems: (tickets: TicketCard[]) => void
+    setItems: (tickets: TicketCardType[]) => void
     setOrderValue: (value: string) => void
     orderStyle: string
     styles: any // TODO: ADD A TYPE 
@@ -89,7 +95,7 @@ export interface TicketsOrderProps {
 }
 
 export interface TicketViewNumberProps {
-    items: TicketCard[]
+    items: TicketCardType[]
     options: {label: string, value: number}[]
     styles: any // TODO: ADD A TYPE
     viewStyle: string

@@ -1,4 +1,4 @@
-export type Conversation = {
+export type ChatConversation = {
     id: string,
     members: string[],
     createdAt: number,

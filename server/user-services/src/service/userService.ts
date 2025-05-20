@@ -21,7 +21,6 @@ export class UserService {
      * @param {string} userId The ID of the user
      * @param {string} displayName The name of the user
      * @param {string} email The email of the user
-     * @param {string} role The role of the user
      * @returns {Promise<User>} The user data
      */
     async createUser(
@@ -29,7 +28,6 @@ export class UserService {
         displayName: string, 
         email: string, 
         photoUrl: string,
-        role: string
     ): Promise<User> {
         /* Create a new user object */
         const user: User = {
@@ -37,7 +35,7 @@ export class UserService {
             displayName,
             email,
             photoUrl,
-            role,
+            role: "user",
             status: "offline", /* Set the status to offline until the user connects */
             lastConnectedAt: null, /* Set the lastConnectedAt to null untill the user connects */
             lastDisconnectedAt: null /* Set the lastDisconnectedAt to null untill the user disconnects */
@@ -98,7 +96,7 @@ export class UserService {
     /**
      * 
      * @param {string} userId The ID of the user to update
-     * @param displayName The new name of the user
+     * @param {string} displayName The new name of the user
      * @returns {Promise<User>} The updated user data
      */
     async updateUserDisplayName(userId: string, displayName: string): Promise<User> {
@@ -131,7 +129,7 @@ export class UserService {
     /**
      * 
      * @param {string} userId The ID of the user to update
-     * @param role The new role of the user
+     * @param {string} role The new role of the user
      * @returns {Promise<User>} The updated user data
      */
     async updateUserRole(userId: string, role: string): Promise<User> {

@@ -4,10 +4,12 @@ import nodeMailer from "nodemailer";
 import {v4} from "uuid";
 import env from "dotenv";
 import { AppError } from "@bug-tracker/usermiddleware";
+import { SocketService } from "./socketService";
 env.config();
 
 export class NotificationService {
     private _notificationRepository: NotificationRepository;
+    private _socketService: SocketService;
 
     constructor() {
         /* Verify if the env data was initialized */
@@ -16,6 +18,7 @@ export class NotificationService {
         }
 
         this._notificationRepository = new NotificationRepository();
+        this._socketService = new SocketService();
     }
 
     /**
@@ -40,6 +43,8 @@ export class NotificationService {
             and send the notification to the email of the user */
         if (notificationMessage.type === "email" && notification.email) {
             await this.sendEmaiNotification(notification.email, notification.message, notification.data);
+        } else {
+            this._socketService.emitToRoom(notificationMessage.userId, "new-notification", notification);
         }
 
         /* Send the notification data to the repository service to create the notification document */

@@ -1,81 +1,73 @@
 import React, { useState, useEffect, useContext } from 'react'
-import { useParams } from 'react-router-dom'
-import { Notification } from '../../utils/types/Notification';
-import { getNotification } from '../../api/notifications';
-import { getAuth } from 'firebase/auth';
+import { useParams } from 'react-router-dom';
+import { getNotification, readNotification } from '../../api/notifications';
 import { UserContext } from '../../context/UserProvider';
-import { User } from '../../utils/types/User';
-import { updateUserNotification} from "../../api/notifications";
+import { ErrorDialog } from '../ErrorDialog';
+import { Notification } from '../../types/Notification';
 
 export const NotificationDetails = () => {
-    const auth = getAuth();
-    const { users } = useContext(UserContext);
-    const { userId, notificationId } = useParams<{userId: string, notificationId: string}>();
+    const { loading, user } = useContext(UserContext);
+    const { notificationId } = useParams<{notificationId?: string}>();
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [notification, setNotification] = useState<Notification | null>(null);
-    const [sender, setSender] = useState<User | null>(null)
+    const [error, setError] = useState<string | null>(null);
+    const [errorDialog, setErrorDialog] = useState<boolean>(false);
 
     useEffect(() => {
-        if (!auth.currentUser) {
-            return;
+        const fetchNotificationData = async () => {
+            try {
+                setError(null);
+                if (!notificationId) {
+                    setError(`Failed to retrieve the ID of the notification message`);
+                    setErrorDialog(true);
+                    return;
+                }
+
+                const notification: Notification = await getNotification(notificationId);
+
+                setNotification(notification);
+            } catch (error) {
+                setError(`Failed to retrieve notification data`);
+                setErrorDialog(true);
+                return;
+            } finally {
+                setIsLoading(false);
+            }
         }
 
-        if (userId && notificationId) {
-            if (auth.currentUser.uid === userId) {
-                fetchNotificationData(userId, parseInt(notificationId));
-            }
+        if (isLoading) {
+            fetchNotificationData();
         }
     }, [notificationId])
 
 
-    const fetchNotificationData = async (userId: string, notificationId: number) => {
-        const response = await getNotification(userId, notificationId);
+    
 
-        if (response) {
-            if (response.notification.senderId !== 'System') {
-                for (let user of users) {
-                    
-                    if (user.id === response.notification.senderId) {
-                        setSender(user);
-                        break;
-                    }
-                }
-            }
-            setNotification(response.notification);
+    const updateNotificationStatus = async (notificationId: string) => {
+        try {
+            const notification: Notification = await readNotification(notificationId);
 
-            if (!response.notification.read) {
-                updateNotificationStatus(userId, notificationId);
-                console.log('UPDATE CALLED');
-            }
+            setNotification(notification);
+        } catch (error) {
+            setError(`Failed to view notification`);
+            setErrorDialog(true);
+            return;
         }
     }
 
-    const updateNotificationStatus = async (userId: string, notificationId: number) => {
-        const response = await updateUserNotification(userId, notificationId);
-
-        if (response) {
-            console.log(response);
-        }
-    }
-
-    if (!notification) {
+    if (loading || !user || !notification) {
         return <div>Loading...</div>
     }
 
     return (
-        <div className='fixed justify-center w-2/3 rounded-lg shadow-xl bg-gray-50 m-10'>
+        <div className='fixed justify-center w-5/6 rounded-lg shadow-xl bg-gray-50 m-10 h-screen'>
             <div className='block text-start items-start'>
-                {
-                    sender ? 
-                        <div className='flex justify-between'>
-                            <img src={sender.photoUrl} alt="sender" className='rounded-full w-8'/>
-                            <h1>{sender.displayName}</h1>
-                        </div> 
-                    : 
-                        <h1 className='p-2 text-xl font-bold'>{notification.senderId}</h1>
-                }
+                
 
-                <p className='text-lg font-semibold px-2 py-6'>{notification.message}</p>
+                {JSON.stringify(notification?.data)}
             </div>
+
+            {errorDialog && error && <ErrorDialog text={error} onClose={() => {setErrorDialog(false); setError(null)}}/>}
         </div>
     )
 }

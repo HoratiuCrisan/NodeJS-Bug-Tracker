@@ -1,14 +1,13 @@
 import React, {useState, useEffect, useContext} from 'react'
-import { getUserNotifications } from '../../api/notifications'
-import { getAuth } from 'firebase/auth'
-import { Notification, NotificationObject } from '../../utils/types/Notification'
+import { getUserNotifications } from '../../api/notifications';
+import { Notification } from '../../types/Notification'
 import { UserContext } from '../../context/UserProvider';
 import { useNavigate } from 'react-router-dom';
 
 export const NotificationDialog = () => {
+    const {loading, user} = useContext(UserContext);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     const navigate = useNavigate();
-    const auth = getAuth();
-    const { notifications } = useContext(UserContext);
     const [displayedNotifications, setDisplayedNotifications] = useState<Notification[]>([]);
 
     useEffect(() => {
@@ -27,8 +26,8 @@ export const NotificationDialog = () => {
         }
     };
 
-    if (!notifications || notifications.length === 0) {
-        return <></>
+    if (loading || !user) {
+        return <div>Loading...</div>
     }
 
     return (

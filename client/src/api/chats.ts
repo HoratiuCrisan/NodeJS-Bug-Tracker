@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { Conversation, Message, MessageMedia } from "../utils/types/Chat";
+import { ChatConversation, Message, MessageMedia } from "../types/Chat";
 import { env } from "../utils/evnValidation";
 
 /* Initialize the axios instance for the chats service */
@@ -12,12 +12,12 @@ const axios = getAxiosInstance(env.REACT_APP_CONVERSATIONS_END_POINT);
  * @param {string} receiverId The ID of the other user 
  * @returns {Promise<Conversation>} The data of the created conversation
  */
-const createConversation = async (receiverId: string): Promise<Conversation> => {
+const createConversation = async (receiverId: string): Promise<ChatConversation> => {
     /* Send the request to the chats server */
     const response = await axios.post(`/`, receiverId);
 
     /* Return the response data */
-    return response.data.data as Conversation;
+    return response.data.data as ChatConversation;
 }
 
 /**
@@ -42,24 +42,24 @@ const addConversationMessage = async (converstaionId: string, text: string, medi
  * @param {string} conversationId The ID of the conversation
  * @returns {Promise<Conversation>} The data of the conversation object
  */
-const getConversation = async (conversationId: string): Promise<Conversation> => {
+const getConversation = async (conversationId: string): Promise<ChatConversation> => {
     /* Send the request to the chat server */
     const response = await axios.get(`/${conversationId}`);
 
     /* Return the response data */
-    return response.data.data as Conversation;
+    return response.data.data as ChatConversation;
 }
 
 /**
  * 
  * @returns {Promise<Conversation[]>} The list of conversation objects
  */
-const getUserConversations = async (): Promise<Conversation[]> => {
+const getUserConversations = async (): Promise<ChatConversation[]> => {
     /* Send the reqeust to the chats server */
     const response = await axios.get(`/`);
 
     /* Return the response data */
-    return response.data.data as Conversation[];
+    return response.data.data as ChatConversation[];
 }
 
 /**

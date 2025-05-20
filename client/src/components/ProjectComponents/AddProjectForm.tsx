@@ -4,7 +4,8 @@ import { customStyles, selectStyles } from '../../utils/Select-Styles';
 import { useAuth } from '../../config/AuthContext'
 import { getUsers } from '../../api/users';
 import {createProject} from '../../api/projects';
-import {User, Project} from '../../utils/types/Project'
+import {User} from "../../types/User";
+import { Project } from '../../types/Project'
 import {ErrorDialog} from '../ErrorDialog'
 import { useNavigate } from 'react-router-dom';
 
@@ -18,30 +19,13 @@ export const AddProjectForm = () => {
     const [options, setOptions] = useState<{ label: string, value: string }[]>([]);
     const [selectedManager, setSelectedManager] = useState<{ label: string, value: string } | null>(null);
     const [selectedMembers, setSelectedMembers] = useState<{ label: string, value: string }[]>([]);
-    const [formData, setFormData] = useState<Project>({
-        ID: '',
-        Title: '',
-        Description: '',
-        CreationDate: new Date().toISOString().split('T')[0],
-        ProjectManager: {
-            DisplayName: '',
-            Email: '',
-            Roles: [],
-            PhotoUrl: '',
-        },
-        Creator: '',
-        Members: [],
-        TaskList: [],
-        Files: [{
-            File: null,
-            FileName: ''
-        }],
-        Code: Math.floor(100000  + Math.random() * 900000)
-    });
+    const [formData, setFormData] = useState<Project | null>(null)
+
+    let projectManager: Project
 
     useEffect(() => {
         const fetchUsers = async () => {
-            const result = await getUsers();
+            const result = await getUsers("displayName", "asc", 10, undefined);
             if (result) {
                 setUsers(result);
                 setIsUserFetched(true);
@@ -56,19 +40,12 @@ export const AddProjectForm = () => {
     useEffect(() => {
         if (users.length > 0) {
             const userOptions = users.map((usr) => ({
-                label: usr.Email,
-                value: usr.Email
+                label: usr.email,
+                value: usr.email
             }));
             setOptions(userOptions);
         }
     }, [users]);
-
-    const onInputChange = (value: string, type: string) => {
-        setFormData((prevFormData) => ({
-            ...prevFormData,
-            [type]: value
-        }));
-    };
 
     const handleManagerChange = (selectedOption: { label: string, value: string } | null) => {
         setError(null)
@@ -85,56 +62,48 @@ export const AddProjectForm = () => {
             return
         }
 
-        const user = users.find((usr) => usr.Email === selectedOption.value);
+        const user = users.find((usr) => usr.email === selectedOption.value);
         if (user) {
             setSelectedManager(selectedOption);
-            setFormData((prevFormData) => ({
-                ...prevFormData,
-                ProjectManager: user,
-                Creator: creator,
-            }));
+            // setFormData((prevFormData) => ({
+            //     ...prevFormData,
+            //     projectManager: user,
+            //     Creator: creator,
+            // }));
         }
     };
 
     const handleMembersChange = (selectedOptions: MultiValue<{ label: string, value: string }>) => {
-        const selectedUsers = selectedOptions.map(option => users.find(user => user.Email === option.value)!);
+        const selectedUsers = selectedOptions.map(option => users.find(user => user.email === option.value)!);
         setSelectedMembers(selectedOptions as { label: string, value: string }[]);
-        setFormData((prevFormData) => ({
-            ...prevFormData,
-            Members: selectedUsers
-        }));
+    //     setFormData((prevFormData) => ({
+    //         ...prevFormData,
+    //         Members: selectedUsers
+    //     }));
     };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         setError(null)
 
-        if (formData.Title.length < 10) {
+        if (!formData) {
+            return;
+        }
+
+        if (formData.title.length < 10) {
             setError("Error! Please enter a project title that is at least 10 characters long!")
             return
         }
 
-        if (formData.Description.length < 20) {
+        if (formData.description.length < 20) {
             setError("Error! Please enter a project description that is at least 20 characters long!")
             return
         }
 
-        if (formData.ProjectManager.Email.length <= 0) {
-            setError("Error! Please select a project manager!")
-            return
-        }
-
-        if (formData.Members.length <= 0 || formData.Members === undefined || formData.Members === null)  {
+        if (formData.memberIds.length <= 0)  {
             setError("Error! Please selecte the project members!")
             return
         }
-
-        formData.Members.map((member) => {
-            if (member.Email === formData.ProjectManager.Email) {
-                setError("Error! The project manager cannot also be a member of the project!")
-                return
-            }
-        })
 
         if (!currentUser) {
             setError("Error! Unauthorized user!")
@@ -175,8 +144,8 @@ export const AddProjectForm = () => {
                             id="ticket-title"
                             autoComplete="off"
                             required
-                            value={formData.Title}
-                            onChange={(e) => onInputChange(e.target.value, 'Title')}
+                            value={formData?.title}
+                            // onChange={(e) => onInputChange(e.target.value, 'Title')}
                             className="block border-gray-300 font-medium text-sm w-full border-2 rounded-md my-4 py-2 pl-2"
                         />
                     </label>
@@ -192,8 +161,8 @@ export const AddProjectForm = () => {
                             id="ticket-description"
                             autoComplete="off"
                             required
-                            value={formData.Description}
-                            onChange={(e) => onInputChange(e.target.value, 'Description')}
+                            value={formData?.description}
+                            // onChange={(e) => onInputChange(e.target.value, 'Description')}
                             className="block border-gray-300 font-medium text-sm w-full border-2 rounded-md my-4 py-2 pl-2"
                         />
                     </label>

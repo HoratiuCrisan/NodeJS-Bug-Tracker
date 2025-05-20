@@ -1,15 +1,15 @@
 import { getAxiosInstance } from "./axiosInstance";
 import { env } from "../utils/evnValidation";
-import { User } from "../utils/types/User";
+import { User } from "../types/User";
 
 /* Initialize the axios instance for the users service */
 const axios = getAxiosInstance(env.REACT_APP_USERS_END_POINT);
 
 /* POST requests */
 
-const createUser = async (): Promise<User> => {
+const createNewUser = async (userId: string, email: string, displayName: string, photoUrl: string): Promise<User> => {
     /* Send the request to the server */
-    const response = await axios.post("/");
+    const response = await axios.post("/", {userId, email, displayName, photoUrl});
 
     /* Return the data of the response */
     return response.data.data as User;
@@ -43,10 +43,23 @@ const getUsers = async (orderBy: string, orderDirection: string, limit: number, 
 
 /**
  * 
+ * @param {string[]} userIds The list of user IDs 
+ * @returns {User[]} The list of retrieved users data 
+ */
+const getUsersData = async (userIds: string[]): Promise<User[]> => {
+    /* Send the request to the users server */
+    const response = await axios.get(`/data`);
+
+    /* Return the response data */
+    return response.data.data as User[];
+}
+
+/**
+ * 
  * @param {string} userId The ID of the user to retrieve
  * @returns {Promise<User>} The retrieved user data
  */
-const getUser = async (userId: string): Promise<User> => {
+const getUserById = async (userId: string): Promise<User> => {
     /* Send the request to the server */
     const response = await axios.get(`/${userId}`);
 
@@ -139,10 +152,11 @@ const deleteUser = async (userId: string): Promise<string> => {
 }
 
 export {
-    createUser, 
+    createNewUser, 
     loginUser, 
     getUsers, 
-    getUser, 
+    getUsersData,
+    getUserById, 
     updateDisplayName, 
     updateEmail, 
     updatePassword, 

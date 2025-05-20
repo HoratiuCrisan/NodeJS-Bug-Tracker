@@ -1,9 +1,9 @@
 import React from 'react'
-import { Ticket, TicketCard as TC } from '../../utils/types/Ticket'
+import { Ticket, TicketCardType } from '../../types/Ticket'
 import { useNavigate } from 'react-router-dom'
 
 interface TicketProps {
-    ticket: TC
+    ticket: TicketCardType
 }
 
 const parsePriorityColor = (text: string) => {
@@ -22,11 +22,11 @@ const parsePriorityColor = (text: string) => {
 }
 
 export const TicketCard: React.FC<TicketProps> = ({ticket}) => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <div
       onClick={() => navigate(`/tickets/${ticket.id}`)} 
-      className='w-1/5 bg-stone-100 font-semibold rounded-md shadow-xl hover:border-2 hover:border-gray-400 cursor-pointer mr-6 my-4 p-4'>
+      className='w-full bg-white font-semibold rounded-md shadow-xl border border-gray-400 hover:border-2 hover:border-gray-600 cursor-pointer mr-6 my-4 p-4'>
         <h1 className='my-2'>
           {ticket.title}
         </h1>
@@ -38,7 +38,6 @@ export const TicketCard: React.FC<TicketProps> = ({ticket}) => {
         </h1>
         <div className='flex items-center'>
           <h1 className='my-2'>{ticket.status.split('-').join(' ')}</h1>
-          {/* TODO: REPLACE WITH THE PHOTO FROM THE USER NOT THE ID */}
           <img src={ticket.authorPhoto} alt="author" className='rounded-full w-8 ml-auto'/> 
         </div>
     </div>

@@ -75,6 +75,7 @@ export class TicketService {
     /* Only admins have permission to fetch all the tickets */
     /**
      * 
+     * @param {string} userId The ID of the user that sent the request
      * @param {number} limit The number of tickets to retrieve
      * @param {string} orderBy The criteria to order tickets by
      * @param {string} orderDirection The direction of the ordering
@@ -85,6 +86,7 @@ export class TicketService {
      * @returns {Promise<Ticket[]>} The collection of all the tickets
      */
     async getAllTickets(
+        userId: string,
         limit: number, 
         orderBy: string,
         orderDirection: string, 
@@ -95,6 +97,7 @@ export class TicketService {
     ): Promise<Ticket[]> {
         /* Generate a hash key for the request query */
         const redisKey = this.generateQueryHashKey(
+            userId,
             limit, 
             orderBy, 
             orderDirection, 
@@ -152,6 +155,7 @@ export class TicketService {
 
         /* Generate the hashed query key */
         const redisKey = this.generateQueryHashKey(
+            userId,
             limit, 
             orderBy, 
             orderDirection, 
@@ -177,6 +181,7 @@ export class TicketService {
 
         /* Cache the query key */
         await this._redisService.cacheQuery(redisKey, ticketIds);
+
 
         /* Return the tickets list */
         return tickets;
@@ -379,6 +384,12 @@ export class TicketService {
         return uniqueHandlers;
     }
 
+    /**
+     * 
+     * @param users 
+     * @param tickets 
+     * @returns 
+     */
     getTicketCards(users: User[], tickets: Ticket[]): TicketCard[] {
         const usersMap = new Map(users.map(user => [user.id, user]));
 
@@ -543,6 +554,7 @@ export class TicketService {
 
     /**
      * 
+     * @param {string} userId The ID of the user that sent the request
      * @param {number} limit The number of tickets to retrieve
      * @param {string} orderBy The tickets order criteria
      * @param {string} orderDirection The direction of the order
@@ -553,6 +565,7 @@ export class TicketService {
      * @returns {string} The hashed query key
      */
     generateQueryHashKey(
+        userId: string,
         limit: number,
         orderBy: string,
         orderDirection: string,
@@ -562,7 +575,7 @@ export class TicketService {
         startAfter?: string 
     ): string {
         /* Stringify the data */
-        const queryString = JSON.stringify({limit, orderBy, orderDirection, searchQuery, status, priority, startAfter});
+        const queryString = JSON.stringify({userId, limit, orderBy, orderDirection, searchQuery, status, priority, startAfter});
 
         /* Encrypt the data into a hash key */
         const hash = crypto.createHash("md5").update(queryString).digest("hex");

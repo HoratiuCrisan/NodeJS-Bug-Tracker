@@ -8,7 +8,6 @@ router.post(
     "/",
     verifyToken,
     checkRequestError,
-    verifyUserRole(["user", "developer", "project-manager", "admin"]),
     UserController.createUser,
 );
 
@@ -26,6 +25,14 @@ router.get(
     checkRequestError,
     verifyUserRole(["developer", "project-manager", "admin"]),
     UserController.getUsers,
+);
+
+router.get(
+    "/data",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    UserController.getUsersData,
 );
 
 router.get(

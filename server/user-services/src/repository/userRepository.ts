@@ -34,6 +34,13 @@ export class UserRepository {
                 /* Add the user data to the document */
                 await userRef.set(user);
 
+                try {
+                    await admin.auth().setCustomUserClaims(user.id, { role: "user" });
+                    console.log("Role successfully set");
+                } catch (error) {
+                    console.error("Error setting role:", error);
+                }
+
                 /* Return the user data */
                 return (await userRef.get()).data() as User;
             },
@@ -99,7 +106,7 @@ export class UserRepository {
                     const lastUserSnapshot = await usersRef.doc(startAfter).get();
 
                     /* Check if the snapshot exists */
-                    if (!lastUserSnapshot.exists) {
+                    if (lastUserSnapshot.exists) {
                         /* Start the fetching process after the last user ID */
                         orderedUsers = orderedUsers.startAfter(lastUserSnapshot);
                     }

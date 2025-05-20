@@ -1,7 +1,7 @@
 import React from 'react'
 import {FaRegEnvelope} from 'react-icons/fa'
-import { ViewTicketContainer } from './ViewTicketFormContainer'
-import { TicketProps } from '../../utils/types/Ticket'
+
+import { TicketProps } from '../../types/Ticket'
 
 export const ViewTicketForm: React.FC<TicketProps> = ({ticket}) => {
   return (
@@ -14,7 +14,7 @@ export const ViewTicketForm: React.FC<TicketProps> = ({ticket}) => {
         </div>
 
         <div className='shadow-2xl mx-auto p-2 w-9/12 my-8'>
-          <ViewTicketContainer ticket={ticket}/>
+
         </div>
     </div>
   )

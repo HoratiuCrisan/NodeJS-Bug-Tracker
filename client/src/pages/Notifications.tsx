@@ -1,35 +1,30 @@
-import React, {useEffect, useState, useContext} from 'react'
-import { Notification } from '../utils/types/Notification'
+import React, {useContext} from 'react'
 import { UserContext } from '../context/UserProvider'
-import { getAuth } from 'firebase/auth'
 import { IoMdNotificationsOutline } from "react-icons/io";
 import { NotificatioinContainer } from '../components/NotificationComponents/NotificatioinContainer';
 
 export const Notifications = () => {
-    const auth = getAuth();
-    const { notifications } = useContext(UserContext);
+    const { user, loading } = useContext(UserContext);
 
-    useEffect(() => {
+    
 
-    }, [notifications]);
-
-    if (!auth.currentUser) {
+    if (loading || !user) {
         return <div>Loading...</div>
     }
 
     return (
-        <div className='w-full pl-10 my-2'>
+        <div className='w-full pl-10 my-2 h-screen'>
             <div className='flex'>
                 <span className='text-2xl p-1'>
                     <IoMdNotificationsOutline />
                 </span>
                 <h1 className='text-black font-semibold text-xl'>
-                    {auth.currentUser.displayName}'s notifications
+                    {user.displayName}'s notifications
                 </h1>
             </div>
             
             <NotificatioinContainer 
-                notifications={notifications}
+                limit={10}
             />
         </div>
     )

@@ -1,49 +1,65 @@
-import React, { useState, useEffect } from 'react'
-import { TicketCard as TC } from '../../utils/types/Ticket';
+import React, { useState, useEffect, useContext } from 'react'
+import { TicketCardType } from '../../types/Ticket';
 import { useNavigate } from 'react-router-dom'
 import { TicketCard } from './TicketCard';
+import { getUserTickets } from '../../api/tickets';
+import { UserContext } from '../../context/UserProvider';
 
-type Props = {
-    items: TC[];
-    itemsNumber: number;
+type TicketViewContainerType = {
+    limit: number;
+    order: string;
+    orderDirection: string;
+    searchQuery?: string;
+    priority?: string;
+    status?: string;
 }
 
-export const TicketViewContainer: React.FC<Props> = ({ items, itemsNumber }) => {
-    const [pageNumber, setPageNumber] = useState<number>(1);
-    const [pages, setPages] = useState<number[]>([]);
+export const TicketViewContainer: React.FC<TicketViewContainerType> = ({ limit, order, orderDirection, searchQuery, priority, status}) => {
+    const { user } = useContext(UserContext);
+    const [tickets, setTickets] = useState<TicketCardType[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [errorDialog, setErrorDialog] = useState<boolean>(false);
+    const [startAfter, setStartAfter] = useState<string | undefined>(undefined);
 
     useEffect(() => {
-        setPageNumber(1)
-        const calculatedPages = Array.from({ length: Math.ceil(items.length / itemsNumber) }, (_, index) => index + 1);
-        setPages(calculatedPages);
-    }, [items, itemsNumber]);
+        const fetchUserTickets = async (userId: string) => {
+            try {
+                const response: TicketCardType[] = await getUserTickets(
+                    userId, 
+                    limit, 
+                    order, 
+                    orderDirection, 
+                    searchQuery, 
+                    priority, 
+                    status, 
+                    startAfter
+                );
 
-    // Calculate the index range for the items to display on the current page
-    const startIndex = (pageNumber - 1) * itemsNumber;
-    const endIndex = Math.min(startIndex + itemsNumber, items.length);
-    const itemsOnPage = items.slice(startIndex, endIndex);
+                console.log(response);
+
+                setTickets(response);
+
+                setStartAfter(response[response.length - 1].id);
+            } catch (error) {
+                setError(`Failed to retrieve your tickets`);
+                setErrorDialog(true);
+            }
+        };
+
+        if (user) {
+            fetchUserTickets(user.id);
+        }
+
+    }, [order, orderDirection, searchQuery, priority, status]);
 
     return (
         <div className='block my-2'>
-            <div className='flex flex-wrap my-2'>
-                {itemsOnPage.map((item, index) => (
+            <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
+                {tickets.map((ticket, index) => (
                     <TicketCard
                         key={index}
-                        ticket={item}
+                        ticket={ticket}
                     />
-                ))}
-            </div>
-
-            <div className='flex justify-end my-10 mr-20'>
-                {pages.map((page, index) => (
-                    <button
-                        onClick={() => setPageNumber(page)}
-                        key={index}
-                        className={`${page === pageNumber ? "bg-gray-800 text-white" : "bg-white text-gray-800 hover:bg-gray-800 hover:text-white"} 
-                        border border-gray-800 rounded-md px-2 py-1 mx-1 cursor-pointer`}
-                    >
-                        {page}
-                    </button>
                 ))}
             </div>
         </div>

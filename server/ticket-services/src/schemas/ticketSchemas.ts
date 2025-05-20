@@ -30,6 +30,10 @@ export const createTicketSchema = Joi.object({
 });
 
 export const getAllTicketsSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
+    }),
     limit: Joi.number().min(1).max(50).required().messages({
         "number.min": `"Limit" must be a positive number equal or greater than 1`,
         "number.max": `"Limit" must be a positive number equal or lesser than 50`,
@@ -84,17 +88,13 @@ export const getTicketSchema = Joi.object({
         "any.required": `"Ticket ID" is required to perform the operation`,
         "string.empty": `"Ticket ID" cannot be an empty string`,
     }),
-    role: Joi.string().allow("user", "developer", "project-manager", "admin").required().messages({
+    role: Joi.string().required().messages({
         "any.required": `"Role" is required to perform the operation`,
         "string.empty": `"Role" cannot be an empty string`,
     }),
 });
 
 export const updateTicketSchema = Joi.object({
-    uuid: Joi.string().required().messages({
-        "any.required": `"Uuid" is required to perform the operation`,
-        "string.empty": `"Uuid" cannot be an empty string`,
-    }),
     userId: Joi.string().required().messages({
         "any.required": `"User ID" is required to perform the operation`,
         "string.empty": `"User ID" cannot be an empty string`,

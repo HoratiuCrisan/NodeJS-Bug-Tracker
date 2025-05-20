@@ -4,8 +4,8 @@ import { TicketContainer } from './TicketFormContainer'
 
 export const NewTicket = () => {
   return (
-    <div className='block'>
-        <div className='flex font-semibold text-xl'>
+    <div className='block h-screen'>
+        <div className='flex font-semibold text-xl mt-2 ml-4 md:ml-6 lg:ml-10'>
             <span className='text-2xl mt-1 mr-2'>
                 <FaRegEnvelope />
             </span>

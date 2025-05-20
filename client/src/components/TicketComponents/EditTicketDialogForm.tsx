@@ -1,10 +1,10 @@
 import React, {useState, useEffect, useContext, FormEvent, MutableRefObject} from 'react'
-import { Ticket } from '../../utils/types/Ticket';
+import { Ticket } from '../../types/Ticket';
 import Select from 'react-select';
 import { TextEditor } from '../TextEditor';
-import { getAllUsers } from '../../api/users';
+import { getUsers } from '../../api/users';
 import { UserContext } from '../../context/UserProvider';
-import { User } from '../../utils/types/User';
+import { User } from '../../types/User';
 import { updateTicketById } from '../../api/tickets';
 import { getAuth } from 'firebase/auth';
 
@@ -47,7 +47,7 @@ const priorityOptions = [
 
 export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClose ,ticketId, ticketData, isFetched}) => {
     const auth = getAuth();
-    const { userRole } = useContext(UserContext);
+    const { user } = useContext(UserContext);
     const [users, setUsers] = useState<User[]>([]);
     const [handlerOptions, setHandlerOptions] = useState<{label: string, value: string}[] >()
     const [formData, setFormData] = useState({
@@ -66,10 +66,10 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
     }, [auth]);
 
     const fetchUsers = async () => {
-        const response = await getAllUsers();
+        const response = await getUsers("displayName", "asc", 10, undefined);
 
         if (response) {
-            const users: User[] = response.users;
+            const users: User[] = response;
             const filteredUsers = users.filter(user => user.role !== 'user' && user.displayName !== ticketData?.authorId);
             console.log(filteredUsers);
             setUsers(filteredUsers);
@@ -130,7 +130,7 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
 
         console.log(updatedTicket);
 
-        const response = await updateTicketById(ticketId, updatedTicket, auth.currentUser?.email);
+        const response = await updateTicketById(ticketId, updatedTicket);
 
         if (response) {
             console.log('updated ticket');
@@ -184,7 +184,7 @@ export const EditTicketDialogForm: React.FC<EditTicketDialogFormProps> = ({onClo
                     />
                 </label>
 
-                {userRole === 'admin' &&
+                {user?.role === 'admin' &&
                     <label htmlFor="ticket-handler" className='w-2/6 mx-2'>
                         Handler:
                         <Select

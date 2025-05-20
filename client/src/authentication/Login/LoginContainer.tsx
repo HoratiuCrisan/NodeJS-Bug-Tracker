@@ -3,7 +3,8 @@ import { LoginForm } from './LoginForm'
 import { auth } from '../../config/firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import {useNavigate} from 'react-router-dom'
-import {FormData} from '../../utils/types/User'
+import {FormData} from '../../types/User'
+import { loginUser } from '../../api/users'
 
 /**
  * Responsible for sending login information to db
@@ -31,8 +32,10 @@ export const LoginContainer: React.FC = () => {
 
         try {
             const verifyEmailLogin = await signInWithEmailAndPassword(auth, formData.email, formData.password)
+
             if (verifyEmailLogin) {
-                console.log(await auth.currentUser?.getIdToken())
+                await loginUser();
+            
                 navigate("/")
             }
             

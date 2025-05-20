@@ -1,32 +1,15 @@
-import { useEffect, useState} from "react";
+import { useEffect, useState, useContext} from "react";
 import { FaRegEnvelope } from "react-icons/fa6";
 import { DisplayedTicket } from "../components/TicketComponents/DisplayedTicket";
-import { useAxiosInterceptors } from "../hooks/token";
-import { User, getAuth, onAuthStateChanged} from "firebase/auth";
+import { UserContext } from "../context/UserProvider";
 
 export const Home = () => {
-    const [user, setUser] = useState<User | null>(null); /* Hold the user */
-    const auth = getAuth(); /* Get the auth */
-    const [isLoading, setIsLoading] = useState<boolean>(true); /* Load until the page is loaded */
-
-    useAxiosInterceptors();
-
-    useEffect(() => {
-        /* If the user is logged in set the current user */
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            user ? setUser(user) : setUser(null);
-        });
-
-        /* Stop the loading process */
-        setIsLoading(false);
-
-        /* Call the method when authenticated */
-        return () => unsubscribe();
-    }, [auth]);
-
-    if (isLoading) {
+    /* Import the loading and user data from the user provider */
+    const { user, loading } = useContext(UserContext);
+   
+    if (loading || !user) {
         return <div>Loading...</div>
-    }
+    }    
 
     return (
         <div className='block mt-4 lg:pl-10'>
@@ -36,7 +19,7 @@ export const Home = () => {
                 </span>
                 
                 <h1 className='mx-2'>
-                    {user?.displayName}'s tickets
+                    {user.displayName}'s tickets
                 </h1>
             </div>
 

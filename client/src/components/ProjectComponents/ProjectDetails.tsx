@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Project, Task, User } from '../../utils/types/Project';
+import { Project } from '../../types/Project';
+import { Task } from '../../types/Tasks';
+import { User } from '../../types/User';
 import { getProjectById, updateProject } from '../../api/projects';
 import { ProjectMembersPanel } from './ProjectMembersPanel';
 import { CreateTaskDialog } from '../TaskComponents/CreateTaskDialog';
@@ -14,6 +16,7 @@ export const ProjectDetails = () => {
     const { currentUser } = useAuth();
     const [projectDetails, setProjectDetails] = useState<Project>();
     const [manager, setManager] = useState<User>();
+    const [members, setMembers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [toggleUserPannel, setToggleUserPannel] = useState<boolean>(true);
     const [toggleAddTask, setToggleAddTask] = useState<boolean>(false);
@@ -36,8 +39,7 @@ export const ProjectDetails = () => {
             return;
         }
         setProjectDetails(response);
-        setManager(response.ProjectManager);
-        tasksRef.current = response.TaskList;
+        //setManager(response.);
         console.log(response);
     };
 
@@ -49,17 +51,17 @@ export const ProjectDetails = () => {
         if (!projectDetails) {
             return;
         }
-        task.Response = task.Response + taskResponse;
-        const updatedTaskList = [...projectDetails.TaskList];
-        updatedTaskList[id] = task;
-        const updatedProjectDetails = { ...projectDetails, TaskList: updatedTaskList };
-        setProjectDetails(updatedProjectDetails);
+        // task.Response = task.Response + taskResponse;
+        // const updatedTaskList = [...projectDetails.TaskList];
+        // updatedTaskList[id] = task;
+        // const updatedProjectDetails = { ...projectDetails, TaskList: updatedTaskList };
+        // setProjectDetails(updatedProjectDetails);
 
-        const response = await updateProject(updatedProjectDetails, params.id);
-        if (!response) {
-            // TODO: handle error
-            return;
-        }
+        // const response = await updateProject(updatedProjectDetails, params.id);
+        // if (!response) {
+        //     // TODO: handle error
+        //     return;
+        // }
         setIsLoading(true);
         setToggleResponse(false);
         setTaskResponse('');
@@ -70,10 +72,10 @@ export const ProjectDetails = () => {
             return
         }
 
-        const updateTaskList = [...projectDetails.TaskList, newTask];
+        // const updateTaskList = [...projectDetails.TaskList, newTask];
 
-        const updateProjectDetails = {...projectDetails, TaskList: updateTaskList}
-        setProjectDetails(updateProjectDetails)
+        // const updateProjectDetails = {...projectDetails, TaskList: updateTaskList}
+        // setProjectDetails(updateProjectDetails)
     }
 
     if (!projectDetails) {
@@ -94,8 +96,7 @@ export const ProjectDetails = () => {
                     Add Task
                 </button>
                 <div className='block bg-gray-100 rounded-md shadow-lg w-5/6 p-4 my-4'>
-                    <h1 className='text-lg font-semibold p-2'>{projectDetails.Title}</h1>
-                    <p className='text-md p-2'>{projectDetails.Description}</p>
+                    <p className='text-md p-2'>{projectDetails.description}</p>
                 </div>
 
                 {tasksRef.current.length > 0 && tasksRef.current.map((task, id) => (
@@ -105,20 +106,19 @@ export const ProjectDetails = () => {
                     >
                         <div className='shadow-2xl py-2'>
                             <div className='flex px-2'>
-                                <img
+                                {/* <img
                                     src={task.CreatorProfileURL || defaultUserPhoto}
                                     onError={(e) => e.currentTarget.src = defaultUserPhoto}
                                     alt="creator"
                                     className='rounded-full w-12 h-12'
-                                />
-                                <h1 className='text-lg font-semibold mx-2 py-2'>{task.Creator}</h1>
+                                /> */}
+                                <h1 className='text-lg font-semibold mx-2 py-2'>{task.authorId}</h1>
                             </div>
 
                             <div className='block my-2'>
-                                <h6 className='text-md font-semibold mx-2'>{task.Title}</h6>
                                 <div
                                     className='text-sm p-2'
-                                    dangerouslySetInnerHTML={{ __html: task.Description }}
+                                    dangerouslySetInnerHTML={{ __html: task.description }}
                                 />
                             </div>
                         </div>
@@ -126,19 +126,14 @@ export const ProjectDetails = () => {
                         <div className='p-2 bg-gray-200 rounded-md mt-4'>
                             <div className='flex justify-between mt-4'>
                                 <div className='flex'>
-                                    <img
-                                        src={task.HandlerProfileURL || defaultUserPhoto}
-                                        onError={(e) => e.currentTarget.src = defaultUserPhoto}
-                                        alt="handler"
-                                        className='rounded-full w-12 h-12'
-                                    />
-                                    <h1 className='text-lg font-semibold mt-2 mx-2'>{task.Handler}</h1>
+                                    
+                                    <h1 className='text-lg font-semibold mt-2 mx-2'>{task.authorId}</h1>
                                 </div>
                             </div>
                             <div className='text-sm p-2'>
                                 <div
                                     className='text-sm p-2 formatted-text'
-                                    dangerouslySetInnerHTML={{ __html: task.Response }}
+                                    dangerouslySetInnerHTML={{ __html: task.description }}
                                 />
                                 {selectedTaskId === id ? (
                                     <AddTaskResponse
@@ -175,7 +170,7 @@ export const ProjectDetails = () => {
                 <div className={`${toggleUserPannel && 'h-full bg-gray-100'}`}>
                     <ProjectMembersPanel
                         manager={manager}
-                        members={projectDetails.Members}
+                        members={members}
                         panelState={toggleUserPannel}
                         onClose={() => setToggleUserPannel(false)}
                     />
@@ -185,7 +180,7 @@ export const ProjectDetails = () => {
             {toggleAddTask && (
                 <CreateTaskDialog
                     onClose={() => setToggleAddTask(false)}
-                    members={projectDetails.Members}
+                    members={members}
                     projectData={projectDetails}
                     onTaskCreation={handleTaskCreation}
                     id={params.id}

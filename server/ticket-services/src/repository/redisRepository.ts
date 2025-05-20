@@ -137,6 +137,7 @@ export class RedisRepository {
     async cachedTickets(keys: string[]): Promise<Ticket[]> {
         return executeWithHandling(
             async () => {
+                console.log("keys: ", keys);
                 /* Get the cached tickets based on the keys */
                 const cached = await this._client.mGet(keys);
 

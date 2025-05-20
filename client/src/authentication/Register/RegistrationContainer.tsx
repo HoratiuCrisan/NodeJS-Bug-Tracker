@@ -6,7 +6,7 @@ import {
 } from './RegistrationValidation';
 import { createUser } from './createUser';
 import { useNavigate } from 'react-router-dom';
-import { RegisterFormData, UserFormErrors } from '../../utils/types/User';
+import { RegisterFormData, UserFormErrors } from '../../types/User';
 import DefaultImage from '../../Images/ProfileImage.jpg'
 
 /**

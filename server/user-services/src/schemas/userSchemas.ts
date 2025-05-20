@@ -14,13 +14,9 @@ export const createUserSchema = Joi.object({
         "any.required": `"Email" is required to perform the operation`,
         "string.empty": `"Email" cannot be an empty string`,
     }),
-    photoUrl: Joi.string().uri().required().messages({
+    photoUrl: Joi.string().required().messages({
         "string.base": `"photoUrl" must be a string`,
         "string.empty": `"PhotoUrl" cannot be an empty string`,
-    }),
-    role: Joi.string().required().messages({
-        "any.required": `"Role" is required to perform the operation`,
-        "string.empty": `"Role" cannot be an empty string`,
     }),
 });
 
@@ -48,6 +44,17 @@ export const getUsersSchema = Joi.object({
     }),
     startAfter: Joi.string().optional(),
 });
+
+export const getUsersDataSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
+    }),
+    userIds: Joi.array().items(Joi.string()).min(1).required().messages({
+        "any.required": `"User IDs" is required to perform the operation`,
+        "array.min": `"User IDs" should have at least 1 item`,
+    }),
+})
 
 export const getUserSchema = Joi.object({
     userId: Joi.string().required().messages({
@@ -109,6 +116,10 @@ export const updateUserRoleSchema = Joi.object({
         "any.required": `"Role" is required to perform the operation`,
         "string.empty": `"Role" cannot be an empty string`,
     }),
+    userEmail: Joi.string().required().messages({
+        "any.required": `"Email" is required to perform the operation`,
+        "string.empty": `"Email" cannot be an empty string`,
+    })
 });
 
 export const updateUserStatusSchema = Joi.object({

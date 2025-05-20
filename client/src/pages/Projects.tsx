@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef, useContext} from 'react'
 import { IoExtensionPuzzleOutline } from "react-icons/io5"
 import { useNavigate } from 'react-router-dom'
 import { getProjects } from '../api/projects'
-import { Project } from '../utils/types/Project'
+import { Project } from '../types/Project'
 import { ProjectCard } from '../components/ProjectComponents/ProjectCard'
 import { UserContext } from '../context/UserProvider'
 
@@ -52,7 +52,7 @@ export const Projects = () => {
           <div 
             key={id}
             className='flex justify-between w-2/4 cursor-pointer my-2'
-            onClick={() => navigate(`/projects/${project.ID}`)}
+            onClick={() => navigate(`/projects/${project.id}`)}
           >
             <ProjectCard 
               data={project}

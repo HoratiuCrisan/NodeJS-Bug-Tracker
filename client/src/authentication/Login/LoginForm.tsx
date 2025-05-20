@@ -1,7 +1,7 @@
 import React from 'react'
 import { FaEnvelope, FaLock } from 'react-icons/fa'
 import { ErrorMessageCard } from '../ErrorMessageCard'
-import {LoginFormProps} from '../../utils/types/User'
+import {LoginFormProps} from '../../types/User'
 
 
 /**

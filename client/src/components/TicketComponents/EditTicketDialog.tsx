@@ -1,7 +1,7 @@
 import React from 'react'
 import { IoCloseOutline } from 'react-icons/io5';
 import { EditTicketDialogForm } from './EditTicketDialogForm';
-import { Ticket } from '../../utils/types/Ticket';
+import { Ticket } from '../../types/Ticket';
 
 interface EditTicketDialogProps {
     onClose: (value: boolean) => void;

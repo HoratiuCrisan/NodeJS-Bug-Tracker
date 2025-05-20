@@ -7,7 +7,7 @@ import { getAuth } from 'firebase/auth'
 export const PrivateRoutes = () => {
     const {currentUser, loading} = useAuth()
     
-    if (loading) {
+    if (loading || !currentUser) {
         return <div>Loading...</div>
     }
 

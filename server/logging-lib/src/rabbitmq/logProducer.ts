@@ -7,6 +7,7 @@ export class LogProducer {
     private _channel: Channel | null;
 
     constructor() {
+        console.log(process.env.RABBITMQ_URL);
         /* Verify if the env data was initialized */
         if (!process.env.RABBITMQ_URL) {
             throw new Error(`Failed to initialize the logging library env data`);

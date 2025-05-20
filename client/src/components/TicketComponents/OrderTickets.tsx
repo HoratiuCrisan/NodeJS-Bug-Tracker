@@ -1,8 +1,8 @@
 import React, {useState} from 'react'
-import {TicketCard, TicketsOrderProps} from '../../utils/types/Ticket'
+import {TicketCardType, TicketsOrderProps} from '../../types/Ticket'
 import Select from 'react-select'
 
-export const handleTicketOrderChange = (option: string | undefined, items: TicketCard[], order: string) => {
+export const handleTicketOrderChange = (option: string | undefined, items: TicketCardType[], order: string) => {
     console.log(option, order)
     if (option === undefined || option === null) {
         return items; // TODO: Implement an error card case 

@@ -1,15 +1,19 @@
 import React from 'react'
-import {DatePickerProps} from '../utils/types/Date'
+import {DatePickerType} from '../types/Date'
 
-const currentDate = new Date().toISOString().split('T')[0]
+const currentDate = new Date().toISOString().slice(0, 16);
 
-export const DatePicker: React.FC<DatePickerProps> = ({style, deadline, onInputChange}) => {
+export const DatePicker: React.FC<DatePickerType> = ({style, onInputChange}) => {
+    const handleDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const timestamp = new Date(e.target.value).getTime();
+        onInputChange(timestamp, "deadline");
+    }  
+
     return (
         <input 
-            type="date" 
+            type="datetime-local" 
             min={currentDate}
-            value={deadline}
-            onChange={(e) => onInputChange(e.target.value, 'deadline')}
+            onChange={handleDeadlineChange}
             className={style}
         />
     )

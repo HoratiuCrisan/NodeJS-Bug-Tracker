@@ -2,7 +2,7 @@ import React, {useEffect} from 'react'
 import {useAuth} from '../config/AuthContext'
 import { getAuth } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
-import { ProfileMenuProps } from '../utils/types/Navbar'
+import { ProfileMenuProps } from '../types/Navbar'
 
 export const ProfileMenu: React.FC<ProfileMenuProps> = ({isOpen, onOpen}) => {
   const navigate = useNavigate()

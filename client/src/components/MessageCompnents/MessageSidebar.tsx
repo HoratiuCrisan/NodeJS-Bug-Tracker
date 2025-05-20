@@ -1,33 +1,63 @@
 import React, {useEffect, useState, useContext} from 'react'
-import {getAllUsersForChats} from "../../api/messages/users"
-import {User} from "../../utils/types/User"
-import { getAuth } from 'firebase/auth'
+import {getUsersData} from "../../api/users";
+import {User} from "../../types/User"
 import { UserContext } from '../../context/UserProvider'
 import { MessageNavbar } from './MessageNavbar'
 import DefaultImage from "../../Images/ProfileImage.jpg"
+import { ChatConversation } from '../../types/Chat';
+import { getUserConversations } from '../../api/chats';
 
 interface MessageSidebarProps {
     handleSetChat: (value: User | null) => void;
 }
 
 export const MessageSidebar: React.FC<MessageSidebarProps> = ({handleSetChat}) => {
-    const auth = getAuth();
-    const {users} = useContext(UserContext);
-    const [currentUser, setCurrentUser] = useState<string>('');
+    const {user} = useContext(UserContext);
+
+    const [users, setUsers] = useState<User[]>([]);
+    const [chats, setChats] = useState<ChatConversation[]>([]);
     const [displayedUsers, setDisplayedUsers] = useState<User[]>([]);
     const [dispUsers, setDispUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        const filteredUsers = users.filter((user) => user.id !== auth.currentUser?.uid);
-        setDisplayedUsers(filteredUsers);
-        setDispUsers(filteredUsers);
-    }, [users]);
+        const fetchChatConversations = async (userId: string) => {
+            try {
+                const response: ChatConversation[] = await getUserConversations();
 
-    useEffect(() => {
-        if (auth.currentUser?.displayName) {
-            setCurrentUser(auth.currentUser.displayName)
+                console.log(response);
+
+                setChats(response);
+
+                const chatsMembers: string[][] = response.map((chat) => chat.members);
+
+                const userIds: string[] = [];
+                for (let i = 0; i < chatsMembers.length; i++) {
+                    for (let usr of chatsMembers[i]) {
+                        if (usr !== userId)
+                            userIds.push(usr);
+                    }
+                }
+
+                await fetchUsersData(userIds);
+            } catch (error) {
+                return;
+            }
+        };
+
+        if (user) {
+            fetchChatConversations(user.id);
         }
-    }, [auth]);
+    }, []);
+
+    const fetchUsersData = async (userIds: string[]) => {
+        try {
+            const response: User[] = await getUsersData(userIds);
+
+            setUsers(response);
+        } catch (error) {
+            return;
+        }
+    }
 
 
     const handleSearchUser = (value: string) => {
@@ -43,38 +73,22 @@ export const MessageSidebar: React.FC<MessageSidebarProps> = ({handleSetChat}) =
         setDisplayedUsers(filter);
     }
 
+    if (!user) {
+        return <div>Loading...</div>
+    }
+
     return (
-        <div className="fixed w-1/6 top-16 right-0 bg-gray-100 h-full z-20">
+        <div className="fixed w-2/6 md:w-1/6 top-16 right-0 bg-gray-100 h-full z-20">
             <MessageNavbar
                 handleSearchUser={handleSearchUser} 
-                user={currentUser} 
+                user={user} 
             />
 
-            {displayedUsers.map((user, id) => (
-                <div
-                    key={id} 
-                    className='flex hover:bg-gray-300 cursor-pointer py-4 px-2'
-                    onClick={() => handleSetChat(user)}
+            {chats.map((chat, index) => (
+                <div 
+                    key={index}
                 >
-                    <div className='mr-4 pt-2'>
-                        <img 
-                            src={user.photoUrl !== undefined ? user.photoUrl : DefaultImage} 
-                            alt="user profile"
-                            className="rounded-full w-72 lg:w-10" 
-                        />
-                    </div>
-
-                    <div className='block text-md font-semibold'>
-                        <h6 className='mb-1'>{user.email}</h6>
-                        <span className={
-                            `${user.status === "online" ? 
-                                'text-green-500 border-green-500' : 
-                                'text-red-500 border-red-500'
-                            } border-2 rounded-md px-1`
-                        }>
-                            {user.status}
-                        </span>
-                    </div>
+                    {chat.id}
                 </div>
             ))}
         </div>

@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { Task, Subtask, Response, TaskCard, SubtaskCard } from "../utils/types/Tasks";
+import { Task, Subtask, Response, TaskCard, SubtaskCard } from "../types/Tasks";
 import { env } from "../utils/evnValidation";
 
 /* Initialize the axios instance for the task service */
@@ -127,6 +127,121 @@ const getResponses = async (taskId: string): Promise<Response[]> => {
 
 /* PUT requests */
 
+/**
+ * 
+ * @param {string} taskId The ID of the task
+ * @param {string} description The new task description
+ * @returns {Promise<Task>} The updated task data
+ */
+const updateTaskDescription = async (taskId: string, description: string): Promise<Task> => {
+    /* Send the reqeust to the tasks server */
+    const respone = await axios.put(`/${taskId}/description`, description);
+
+    /* Return the response data */
+    return respone.data.data as Task;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task
+ * @param {string} status The new task status
+ * @returns {Promise<Task>} The updated task data
+ */
+const updateTaskStatus = async (taskId: string, status: string): Promise<Task> => {
+    /* Send the reqeust to the tasks server */
+    const respone = await axios.put(`/${taskId}/status`, status);
+
+    /* Return the response data */
+    return respone.data.data as Task;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task
+ * @param {string[]} handlerIds The new task handlers
+ * @returns {Promise<Task>} The updated task data
+ */
+const addTaskHandlers = async (taskId: string, handlerIds: string[]): Promise<Task> => {
+    /* Send the reqeust to the tasks server */
+    const respone = await axios.put(`/${taskId}/addHandlers`, handlerIds);
+
+    /* Return the response data */
+    return respone.data.data as Task;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task
+ * @param {string[]} handlerIds The IDs of the handlers to remove from the task
+ * @returns {Promise<Task>} The updated task data
+ */
+const removeTaskHandlers = async (taskId: string, handlerIds: string[]): Promise<Task> => {
+    /* Send the reqeust to the tasks server */
+    const respone = await axios.put(`/${taskId}/removeHandlers`, handlerIds);
+
+    /* Return the response data */
+    return respone.data.data as Task;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task the subtask is part of
+ * @param {string} subtaskId The ID of the subtask
+ * @param {string} description The new subtask description
+ * @returns {Promise<Subtask>} The updated subtask data
+ */
+const updateSubtaskDescription = async (taskId: string, subtaskId: string, description: string): Promise<Subtask> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/${subtaskId}/description`, description);
+
+    /* Return the response data */
+    return response.data.data as Subtask;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task the subtask is part of
+ * @param {string} subtaskId The ID of the subtask
+ * @param {boolean} status The new subtask status
+ * @returns {Promise<Subtask>} The updated subtask data
+ */
+const updateSubtaskStatus = async (taskId: string, subtaskId: string, status: boolean): Promise<Subtask> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/${subtaskId}/status`, status);
+
+    /* Return the response data */
+    return response.data.data as Subtask;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task the subtask is part of
+ * @param {string} subtaskId The ID of the subtask
+ * @param {string} handlerId The new subtask handler
+ * @returns {Promise<Subtask>} The updated subtask data
+ */
+const updateSubtaskHandler = async (taskId: string, subtaskId: string, handlerId: string): Promise<Subtask> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/${subtaskId}/description`, handlerId);
+
+    /* Return the response data */
+    return response.data.data as Subtask;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task the response is part of
+ * @param {string} responseId The ID of the response
+ * @param {string} message The new text message of the response
+ * @returns {Promise<Response>} The updated response data
+ */
+const updateResponseMessage = async (taskId: string, responseId: string, message: string): Promise<Response> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/responses`);
+
+    /* Return the response data */
+    return response.data.data as Response;
+}
 
 /* DELETE requests */
 
@@ -159,6 +274,35 @@ const deleteSubtask = async (taskId: string, subtaskId: string): Promise<string>
 
 /**
  * 
+ * @param {string} taskId The ID of the task
+ * @param {Task} task The old task version 
+ * @returns {Promise<Task>} The rolled back task data
+ */
+const taskVerionRollback = async (taskId: string, task: Task): Promise<Task> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/rollback`, task);
+
+    /* Return the response data */
+    return response.data.data;
+}
+
+/**
+ * 
+ * @param {string} taskId The ID of the task the subtask is part of
+ * @param {string} subtaskId The ID of the subtask
+ * @param {Subtask} subtask The old subtask version
+ * @returns {Promise<Subtask>} The rolled back subtask data
+ */
+const subtaskVersionRollback = async (taskId: string, subtaskId: string, subtask: Subtask): Promise<Subtask> => {
+    /* Send the request to the tasks server */
+    const response = await axios.put(`/${taskId}/rollback/${subtaskId}`, subtask);
+
+    /* Return the response data */
+    return response.data.data;
+}
+
+/**
+ * 
  * @param {string} taskId The ID of the task the response is part of
  * @param {string} responseId The ID of the response to delete
  * @returns {Promise<string>} The success message
@@ -180,7 +324,16 @@ export {
     getSubtasks,
     getSubtaskById,
     getResponses,
-
+    updateTaskDescription,
+    updateTaskStatus,
+    addTaskHandlers,
+    removeTaskHandlers,
+    updateSubtaskDescription,
+    updateSubtaskStatus,
+    updateSubtaskHandler,
+    updateResponseMessage,
+    taskVerionRollback,
+    subtaskVersionRollback,
     deleteTask,
     deleteSubtask,
     deleteTaskResponse,

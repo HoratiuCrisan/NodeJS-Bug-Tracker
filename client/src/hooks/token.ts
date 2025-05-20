@@ -1,8 +1,6 @@
 import axios from "axios";
 import { User, getAuth } from "firebase/auth";
 import { useEffect, useRef, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { dataBase } from "../config/firebase";
 
 /* Globla variable to track initalization */
 let interceptorsSetUp = false;
@@ -13,12 +11,7 @@ const useAxiosInterceptors = () => {
 
     useEffect(() => {
         const setupAxiosInterceptors = () => {
-            const auth = getAuth();
-
-            const getUserDetailsFromFirestore = async (uid: string) => {
-                const userDoc = await getDoc(doc(dataBase, "Users", uid));
-                return userDoc.exists() ? userDoc.data() : null;
-            } 
+            const auth = getAuth(); 
 
             const getUserDetails = async (user : User) => {
                 const tokenResult = await user.getIdTokenResult();
@@ -57,8 +50,6 @@ const useAxiosInterceptors = () => {
                 }
 
                 const currentDetails = await getUserDetails(user);
-
-                console.log(currentDetails);
 
                 if (forceRefresh || !userDetails || JSON.stringify(currentDetails) !== JSON.stringify(userDetails)) {
                     setUserDetails(currentDetails);

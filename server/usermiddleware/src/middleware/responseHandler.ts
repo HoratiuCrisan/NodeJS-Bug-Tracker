@@ -36,27 +36,35 @@ export async function responseHandler(
     notificationsData?: NotificationMessage[],
     versionDetails?: VersionDetails
 ) { 
-    /* If the method sent a log message, assert it to the log producer */
-    if (logData) {
-        await logger.assertToLogQueue(`logger`, logData);
-    }
-
-    /* If the method sent notification messages, iterate over each message and assert it to the notification producer */
-    if (notificationsData) {
-        notificationsData.forEach(async (notificationData: NotificationMessage) => {
-            await notification.assertQueue(`notifications`, notificationData);
-        });
-    }
-
-    /* If the method sent an item version, assert it to the version producer */
-    if (versionDetails) {
-        await versionProducer.assertToQueue(`versions`, versionDetails);
-    }
-
     /* Return the success message and the response data */
-    res.status(httpCode).json({
-        success: true,
-        message,
-        data: responseData,
-    });
+   if (!res.headersSent) {
+        res.status(httpCode).json({
+            success: true,
+            message,
+            data: responseData,
+        });
+    } else {
+        console.warn("[responseHandler] Response already sent!");
+    }
+
+    try {
+        /* If the method sent a log message, assert it to the log producer */
+        if (logData) {
+            await logger.assertToLogQueue(`logger`, logData);
+        }
+
+        /* If the method sent notification messages, iterate over each message and assert it to the notification producer */
+        if (notificationsData) {
+            notificationsData.forEach(async (notificationData: NotificationMessage) => {
+                await notification.assertQueue(`notifications`, notificationData);
+            });
+        }
+
+        /* If the method sent an item version, assert it to the version producer */
+        if (versionDetails) {
+            await versionProducer.assertToQueue(`versions`, versionDetails);
+        }
+    } catch (error) {
+        throw new AppError(`RabbitmqProducerError`, 500, `Failed to send some data to rabbitmq: ${error}`);
+    }
 }

@@ -2,7 +2,9 @@ import React, {useState, useEffect, useRef} from 'react'
 import { IoCloseOutline } from 'react-icons/io5'
 import { TextEditor } from '../TextEditor'
 import Select, { MultiValue } from 'react-select'
-import { Project, Task, User } from '../../utils/types/Project'
+import { Project } from '../../types/Project'
+import { User } from '../../types/User'
+import { Task } from '../../types/Tasks'
 import { useAuth } from '../../config/AuthContext'
 import { DatePicker } from '../DatePicker'
 import { updateProject } from '../../api/projects'
@@ -26,23 +28,20 @@ export const CreateTaskDialog: React.FC<Props> = ({onClose, members, projectData
   const [selectedMember, setSelectedMember] = useState<{ label: string, value: string }>()
   const [taskDeadline, setTaskDeadline] = useState<string>('')
   const formData = useRef<Project>({
-    ID: projectData.ID,
-    Title: projectData.Title,
-    Description: projectData.Description,
-    CreationDate: projectData.CreationDate,
-    ProjectManager: projectData.ProjectManager,
-    Creator: projectData.Creator,
-    Members: projectData.Members,
-    TaskList: projectData.TaskList,
-    Files: projectData.Files,
-    Code: projectData.Code
+    id: projectData.id,
+    title: projectData.title,
+    description: projectData.description,
+    createdAt: projectData.createdAt,
+    projectManagerId: projectData.projectManagerId,
+    memberIds: projectData.memberIds,
+    code: projectData.code
   })
 
   useEffect(() => {
     if (members.length > 0) {
       const usersOptions = members.map((member) => ({
-        label: member.DisplayName,
-        value: member.DisplayName
+        label: member.displayName,
+        value: member.displayName
       }))
 
       setMembersOptions(usersOptions)
@@ -57,7 +56,7 @@ export const CreateTaskDialog: React.FC<Props> = ({onClose, members, projectData
         return
     }
 
-    const user = members.find((usr) => usr.DisplayName === selectedOption.value)
+    const user = members.find((usr) => usr.displayName === selectedOption.value)
 
     if (!user) {
       setError("Error! The member selected does not exist")
@@ -67,7 +66,7 @@ export const CreateTaskDialog: React.FC<Props> = ({onClose, members, projectData
     setSelectedMember(selectedOption)
 }
 
-const handleDateChange = (value: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string | undefined) => {
+const handleDateChange = (value: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string | number | undefined) => {
   setError(null)
 
   if (value === undefined) {
@@ -112,31 +111,22 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 
   const currentUsr = currentUser.displayName ? currentUser.displayName : '';
 
-  const handler = members.find(member => member.DisplayName === selectedMember.value)
+  const handler = members.find(member => member.displayName === selectedMember.value)
 
 
 
   // Create the new task
   const newTask: Task = {
-      Title: taskTitle,
-      Description: taskDescription,
-      CreationDate: new Date().toISOString().split('T')[0],
-      Response: '',
-      Deadline: taskDeadline,
-      Status: 'new',
-      Creator: currentUsr,
-      Handler: selectedMember.value,
-      CreatorProfileURL: projectData.ProjectManager.DisplayName,
-      HandlerProfileURL: handler?.PhotoUrl,
-      Files: []
+      id: '',
+      projectId: '',
+      description: taskDescription,
+      createdAt: Date.now(),
+      deadline: Date.now(),
+      status: 'new',
+      authorId: currentUser.uid,
+      handlerIds: [selectedMember.value],
+      completedAt: null,
   };
-
-  if (!formData.current.TaskList) {
-    formData.current.TaskList = [newTask]
-  } else {
-    formData.current.TaskList.push(newTask)
-  }
-  
   
 
   const response = await updateProject(formData.current, id)
@@ -224,11 +214,11 @@ const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
                     className="text-lg font-mono font-semibold"
                 >
                     Deadline
-                    <DatePicker 
+                    {/* <DatePicker 
                         deadline={taskDeadline}
                         onInputChange={handleDateChange}
                         style={"block w-full text-sm md:w-1/3 border-2 border-gray-300 focus:border-gray-800 rounded-md p-2 mb-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"}
-                    />
+                    /> */}
                 </label>
 
                 <button

@@ -5,26 +5,21 @@ import { BsStack } from 'react-icons/bs';
 import { IoMdNotificationsOutline } from 'react-icons/io';
 import { NotificationDialog } from './NotificationComponents/NotificationDialog';
 import { UserContext } from '../context/UserProvider';
-import { Notification } from '../utils/types/Notification';
-import { NavbarProps } from '../utils/types/Navbar';
+import { Notification } from '../types/Notification';
+import { NavbarProps } from '../types/Navbar';
 
 export const Navbar: React.FC<NavbarProps> = ({ username, profileImage }) => {
-    const { notifications } = useContext(UserContext);
     const navigate = useNavigate();
     const [isNotificationDialogOpen, setIsNotificationDialogOpen] = useState<boolean>(false);
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [unReadNotifications, setUnReadNotifications] = useState<Notification[]>([]);
-
-    useEffect(() => {
-        setUnReadNotifications(notifications.filter(notification => !notification.read));
-    }, [notifications]);
 
     const handleProfileMenuToggle = (value: boolean) => {
         setIsProfileMenuOpen(value);
     };
 
     return (
-        <nav className="fixed w-full bg-gray-100 shadow-md py-3 top-0 z-50">
+        <nav className="fixed w-full bg-white shadow-md py-3 top-0 z-50">
             <div className="flex justify-between">
                 <div className="flex">
                     <span className="text-xl text-gray-800 mx-2 mt-2 lg:hidden cursor-pointer">

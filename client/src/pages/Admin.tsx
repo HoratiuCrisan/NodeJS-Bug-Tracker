@@ -1,11 +1,11 @@
 import React, {useState, useEffect} from 'react'
 import { getAuth } from 'firebase/auth'
 import { getAllTickets } from '../api/tickets';
-import { Ticket, TicketCard } from '../utils/types/Ticket';
+import { Ticket, TicketCardType } from '../types/Ticket';
 
 export const Admin = () => {
     const auth = getAuth();
-    const [tickets, setTickets] = useState<TicketCard[]>([]);
+    const [tickets, setTickets] = useState<TicketCardType[]>([]);
 
     useEffect(() => {
         if (auth.currentUser) {
@@ -14,7 +14,7 @@ export const Admin = () => {
     }, [auth]);
 
     const fetchTickets =  async () => {
-        const response: TicketCard[] = await getAllTickets(10, "title", "asc", undefined, undefined, undefined);
+        const response: TicketCardType[] = await getAllTickets(10, "title", "asc", undefined, undefined, undefined);
 
         if (response) {
             console.log("All tickets ", response);

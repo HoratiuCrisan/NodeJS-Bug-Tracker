@@ -1,6 +1,8 @@
-import { PROJECT_END_POINT } from "./endpoint"
-import { Project } from "../utils/types/Project"
+import { env } from "../utils/evnValidation"
+import { Project } from "../types/Project"
 import axios from "axios"
+
+const PROJECT_END_POINT = env.REACT_APP_PROJECTS_END_POINT;
 
 const getProjects = async () => {
     try {

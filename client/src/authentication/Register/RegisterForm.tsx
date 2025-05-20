@@ -5,7 +5,7 @@ import {
     FaLock,
 } from "react-icons/fa";
 import { ErrorMessageCard } from '../ErrorMessageCard'
-import { RegisterFormData, UserFormErrors } from '../../utils/types/User'
+import { RegisterFormData, UserFormErrors } from '../../types/User'
 
 interface RegistrationFormProps  {
     formData: RegisterFormData

@@ -1,6 +1,6 @@
 import React, {useState, useContext, useEffect} from 'react'
 import { ChatsNavbar } from './ChatsNavbar'
-import { User } from '../../utils/types/User';
+import { User } from '../../types/User';
 import { Conversation } from './Conversation';
 import { getAuth } from 'firebase/auth';
 import { UserContext } from '../../context/UserProvider';
@@ -15,7 +15,6 @@ interface ChatsProps {
 }
 
 export const Chats: React.FC<ChatsProps> = ({chat, conversationId}) => {
-    const { conversations, sendMessage, sendNotification } = useContext(UserContext);
     //const conversation = conversations.find(conv => conv.id === conversationId);
     const [newMessage, setNewMessage] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -53,11 +52,10 @@ export const Chats: React.FC<ChatsProps> = ({chat, conversationId}) => {
             await uploadBytes(fileRef, file);
             const fileUrl = await getDownloadURL(fileRef);
             
-            sendMessage(conversationId, userId, newMessage, fileUrl);
-            sendNotification(chat.id, newMessage, userId);
+            //sendMessage(conversationId, userId, newMessage, fileUrl);
+
         } else {
-            sendNotification(chat.id, newMessage, userId);
-            sendMessage(conversationId, userId, newMessage);
+            //sendMessage(conversationId, userId, newMessage);
         }
 
         setNewMessage('');

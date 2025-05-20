@@ -25,6 +25,6 @@ export const measureTime = async <T>(fn: () => Promise<T>, name: string = 'Metho
         const [seconds, nanoseconds] = process.hrtime(start);
         const durationMs = Math.round((seconds * 1000) + (nanoseconds / 1e6));
 
-        throw new AppError(`ExecutionTimeMeasureError`, 500, `"${name}" failed after ${durationMs}ms `);
+        throw new AppError(`ExecutionTimeMeasureError`, 500, `"${name}" failed after ${durationMs}ms: ${JSON.stringify(error)}`);
     }
 }

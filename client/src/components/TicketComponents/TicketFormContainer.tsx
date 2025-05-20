@@ -1,171 +1,109 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, ChangeEvent } from 'react';
 import { TicketForm } from './TicketForm';
-import { createTicket } from '../../api/createTicket';
-import { useAuth } from '../../config/AuthContext';
-import { getAuth } from 'firebase/auth';
+import { createTicket } from '../../api/tickets';
+import { ticketPriorityOptions, ticketTypeOptions } from '../../utils/selectOptions';
+import { UserContext } from '../../context/UserProvider';
 import { useNavigate } from 'react-router-dom';
-import { TicketFormData } from '../../utils/types/Ticket';
+import { TicketFormDataType } from '../../types/Ticket';
 
-const priorityOptions = [
-  {
-    value: 'low',
-    label: 'Low',
-  },
-  {
-    value: 'medium',
-    label: 'Medium',
-  },
-  {
-    value: 'high',
-    label: 'High',
-  },
-  {
-    value: 'urgent',
-    label: 'Urgent',
-  },
-];
+const defaultFormData = {
+	title: "",
+	description: "",
+	priority: { value: "", label: "" },
+	type: { value: "", label: "" },
+	deadline: Date.now(),
+};
 
-const ticketTypeOptions = [
-  {
-    value: 'bug',
-    label: 'Bug',
-  },
-  {
-    value: 'feature',
-    label: 'Feature',
-  },
-];
 
 export const TicketContainer = () => {
-  const auth = getAuth();
-  const navigate = useNavigate();
-  const [formError, setFormError] = useState<null | string>(null);
-  const [formData, setFormData] = useState<TicketFormData>(() => {
-    const savedFormData = auth.currentUser ?
-        localStorage.getItem(`ticketFormData_${auth.currentUser.uid}`)
-        : null;
-    return savedFormData
-      ? JSON.parse(savedFormData)
-      : {
-          title: '',
-          description: '',
-          priority: {
-            value: '',
-            label: '',
-          },
-          type: {
-            value: '',
-            label: '',
-          },
-          deadline: new Date().toISOString().split('T')[0],
-        };
-  });
+	const { loading, user } = useContext(UserContext);
+	const navigate = useNavigate();
 
-  // Save form data to localStorage whenever it changes
-  useEffect(() => {
-    if (auth.currentUser) {
-        localStorage.setItem(
-            `ticketFormData_${auth.currentUser.uid}`, 
-            JSON.stringify(formData)
-        );
-    }
-  }, [formData, auth.currentUser]);
+	const [formError, setFormError] = useState<null | string>(null);
+	const [formData, setFormData] = useState<TicketFormDataType>(defaultFormData);
 
-  const handleInputChange = (
-    value: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string | undefined,
-    type: string
-  ) => {
-    switch (type) {
-      case 'title':
-        setFormData((prevFormData) => ({
-          ...prevFormData,
-          title: value ? value.toString() : '',
-        }));
-        break;
-      case 'description':
-        setFormData((prevFormData) => ({
-          ...prevFormData,
-          description: value ? value.toString() : '',
-        }));
-        break;
-      case 'priority':
-        setFormData((prevFormData) => ({
-          ...prevFormData,
-          priority: {
-            value: value ? value.toString() : '',
-            label: value ? value.toString() : '',
-          },
-        }));
-        break;
-      case 'type':
-        setFormData((prevFormData) => ({
-          ...prevFormData,
-          type: {
-            value: value ? value.toString() : '',
-            label: value ? value.toString() : '',
-          },
-        }));
-        break;
-      case 'deadline':
-        if (typeof value === 'string') {
-          setFormData((prevFormData) => ({
-            ...prevFormData,
-            deadline: value,
-          }));
-        }
-        break;
-    }
-  };
+	useEffect(() => {
+		if (!user) return;
 
-  const handleErrors = () => {
-    if (formData.title.length < 5) {
-      setFormError('Title must be at least 5 characters long!');
-      return false;
-    } else if (formData.description.length < 10) {
-      setFormError('Description must be at least 10 characters long!');
-      return false;
-    } else if (formData.priority.label === '') {
-      setFormError('Select the desired priority for your ticket!');
-      return false;
-    } else if (formData.type.label === '') {
-      setFormError('Select the desired type for your ticket!');
-      return false;
-    } else if (formData.deadline.toString().length <= 0) {
-      setFormError('Please select a deadline!');
-      return false;
-    }
+		const draftKey = `ticketFormData_${user.id}`;
+		const storedDraft = localStorage.getItem(draftKey);
 
-    return true;
-  };
+		if (storedDraft) {
+			setFormData(JSON.parse(storedDraft));
+		} else {
+			localStorage.setItem(draftKey, JSON.stringify(defaultFormData));
+		}
+	}, [user]);
 
-  const handleTicketSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
+	useEffect(() => {
+		if (!user) return;
 
-    const result = handleErrors();
+		const draftKey = `ticketFormData_${user.id}`;
+		localStorage.setItem(draftKey, JSON.stringify(formData));
+	}, [formData, user]);
 
-    if (result) {
-      await createTicket({
-        formData,
-        author: auth.currentUser?.displayName,
-        authorPicture: auth.currentUser?.photoURL,
-      });
-      
-      if (auth.currentUser) {
-        localStorage.removeItem(`ticketFormData_${auth.currentUser.uid}`);
-      }
-      navigate('/');
-    }
-  };
+	const handleInputChange = (
+		value: string | number | React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | undefined,
+		field: keyof TicketFormDataType
+	) => {
+		let inputValue: string | number;
 
-  return (
-    <TicketForm
-      formData={formData}
-      formError={formError}
-      priority={priorityOptions}
-      type={ticketTypeOptions}
-      onSubmit={handleTicketSubmit}
-      onInputChange={handleInputChange}
-    />
-  );
+		if (typeof value === 'string' || typeof value === 'number') {
+			inputValue = value;
+		} else {
+			inputValue = value?.target?.value ?? '';
+		}
+
+		if (field === 'priority' || field === 'type') {
+			setFormData(prev => ({
+			...prev,
+			[field]: {
+				value: inputValue.toString(),
+				label: inputValue.toString(),
+			},
+			}));
+		} else {
+			setFormData(prev => ({
+			...prev,
+			[field]: inputValue,
+			}));
+		}
+	};
+
+
+	const handleTicketSubmit = async (e: React.FormEvent) => {
+		try {
+			e.preventDefault();
+			setFormError(null);
+
+			await createTicket(
+				formData.title, 
+				formData.description, 
+				formData.priority.value, 
+				formData.type.value, Number(formData.deadline)
+			);
+			
+			localStorage.removeItem(`ticketFormData_${user?.id}`);
+			
+			navigate('/');
+		} catch (error) {
+
+		}
+		
+	};
+
+	if (loading || !user) {
+		return <>Loading...</>
+	}
+
+	return (
+		<TicketForm
+			formData={formData}
+			formError={formError}
+			priority={ticketPriorityOptions}
+			type={ticketTypeOptions}
+			onSubmit={handleTicketSubmit}
+			onInputChange={handleInputChange}
+		/>
+	);
 };

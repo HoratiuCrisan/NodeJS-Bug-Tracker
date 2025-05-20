@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { GroupConversation, Message, MessageMedia } from "../utils/types/Chat";
+import { GroupConversation, Message, MessageMedia } from "../types/Chat";
 import {env} from "../utils/evnValidation";
 
 /* Initialize the axios instance for the groups service */

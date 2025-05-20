@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { Notification } from "../utils/types/Notification";
+import { Notification } from "../types/Notification";
 import { env } from "../utils/evnValidation";
 
 /* Initialize the axios instance for the notifications service */

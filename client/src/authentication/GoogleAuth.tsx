@@ -1,10 +1,11 @@
 import React from 'react'
-import { auth, googleProvider, dataBase } from '../config/firebase'
+import { setDoc, doc, getDoc } from 'firebase/firestore';
+import {auth, dataBase, googleProvider } from '../config/firebase';
 import { signInWithPopup } from 'firebase/auth'
-import { useNavigate } from 'react-router-dom'
-import {GoogleUser} from '../utils/types/User'
-import {doc, getDoc, setDoc} from 'firebase/firestore'
-import { setUserRole } from '../api/users'
+import {GoogleUser} from '../types/User'
+import { useNavigate } from 'react-router-dom';
+import { createNewUser, getUserById, loginUser } from '../api/users';
+
 
 /**
  * Responsible for allowing the user to register with his Google account
@@ -12,42 +13,48 @@ import { setUserRole } from '../api/users'
  */
 
 export const GoogleAuth: React.FC<GoogleUser> = ({text, icon}) => {
-    const navigate = useNavigate()
-    const connectWithGoogle = async () => {
+    const navigate = useNavigate();
+
+    const handleGoogleSignIn = async () => {
         try {
-            const response = await signInWithPopup(auth, googleProvider)
-            
-            if (response) {
-                const user = response.user
-                const userId = user.uid
-                const userDocRef = doc(dataBase, `Users/${userId}`)
-                const userDoc = await getDoc(userDocRef)
+            const result = await signInWithPopup(auth, googleProvider);
 
-                if (!userDoc.exists()) {
-                    await setDoc(userDocRef, {
-                        id: userId,
-                        email: user.email,
-                        displayName: user.displayName,
-                        role: "user",
-                        photoUrl: user.photoURL,
-                    })
-
-                    const response = await setUserRole(user.uid, "user");
-
-                    if (response) {
-                        await user.getIdToken(true);
-                    }
-                }
-
-                navigate("/")
+            if (!result) {
+                console.log("No redirect result (user didn't come from Google sign-in)");
+                return;
             }
+
+            const user = result.user;
+            const userRef = doc(dataBase, `Users/${user.uid}`);
+            const userDoc = await getDoc(userRef);
+
+            /* Check if the user exists */
+            if (!userDoc.exists) {
+                await setDoc(userRef, {
+                    id: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    role: "user",
+                    photoUrl: user.photoURL,
+                });
+            } 
+
+            if (!await getUserById(user.uid)) {
+                await createNewUser(user.uid!, user.email!, user.displayName!, user.photoURL!);
+            }
+            
+
+            console.log(await auth.currentUser?.getIdTokenResult());
+            /* Redirect to the main page */
+            navigate('/');
+            
         } catch (error) {
-            console.error("Failed to register with Google: " + error)
+            throw new Error(`Failed to sign in user with google provider: ${JSON.stringify(error)}`,);
         }
     }
 
     return (
-        <div onClick={connectWithGoogle} className='flex'>
+        <div onClick={handleGoogleSignIn} className='flex justify-center w-full mx-auto'>
             {icon} {text}
         </div>
     )

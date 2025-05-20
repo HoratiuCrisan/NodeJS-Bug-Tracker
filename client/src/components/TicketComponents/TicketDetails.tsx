@@ -1,80 +1,56 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import { getUserTicketById } from '../../api/tickets';
-import { Ticket, TicketObject } from '../../utils/types/Ticket';
+import { Ticket, TicketObject } from '../../types/Ticket';
 import { UpdateStatusDialog } from '../UpdateStatusDialog';
 import { DeleteDialog } from '../DeleteDialog';
-import { TextEditor } from '../TextEditor';
 import { FilesUpload } from '../FilesUpload';
 import { updateTicketById } from '../../api/tickets';
-import { getAuth } from 'firebase/auth';
 import { IoIosArrowForward } from "react-icons/io";
 import { IoIosArrowDown } from "react-icons/io";
 import { TicketVersionsDetails } from './TicketVersionsDetails';
 import { EditTicketDialog } from './EditTicketDialog';
 import { UserContext } from '../../context/UserProvider';
+import {statusUpdateMenu} from "../../utils/selectOptions";
+import { useCan } from '../../hooks/useCan';
+import { User } from '../../types/User';
+import { TicketResponse } from './TicketResponse';
 
 export const TicketDetails = () => {
-    const {userRole} = useContext(UserContext);
-    const auth = getAuth();
-    const params = useParams()
+    const {loading, user} = useContext(UserContext);
+    const {ticketId} = useParams();
     const isFetched = useRef<boolean>(false);
-    const [ticket, setTicket] = useState<TicketObject>()
-    const [isLoading, setIsLoading] = useState<boolean>(true)
-    const [ticketResponse, setTicketResponse] = useState<string>('')
-    const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState<boolean>(false)
+    const [ticketCard, setTicketCard] = useState<TicketObject | undefined>(undefined);
+    const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState<boolean>(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false)
-    const [isVersionOpen, setIsVersionOpen] = useState<boolean>(false)
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+    const [isVersionOpen, setIsVersionOpen] = useState<boolean>(false);
+    const canUpdateStatus = useCan("updateTicketStatus", ticketCard?.ticket);
+    const canEditTicket = useCan("editTicket", ticketCard?.ticket);
+    const canDeleteTicket = useCan("deleteTicket", ticketCard?.ticket);
 
     const ticketsMenu = [
-        {text: "Deadline", value: new Date(Number(ticket?.ticket.deadline)).toLocaleString(), style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
-        {text: "Type", value: ticket?.ticket.type, style: 'text-yellow-600 border-yellow-600 hover:bg-yellow-600 hover:text-white'},
-        {text: "Priority", value: ticket?.ticket.priority, style: 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white'},
-        {text: "Status", value: ticket?.ticket.status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'}
-    ]
-
-    const statusUpdateMenu = [
-        {label: "Development", value: "Development"},
-        {label: "On-Hold", value: "On-Hold"},
-        {label: "Completed", value: "Completed"}
-    ]
+        {text: "Deadline", value: new Date(Number(ticketCard?.ticket.deadline)).toLocaleString(), style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
+        {text: "Type", value: ticketCard?.ticket.type, style: 'text-yellow-600 border-yellow-600 hover:bg-yellow-600 hover:text-white'},
+        {text: "Priority", value: ticketCard?.ticket.priority, style: 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white'},
+        {text: "Status", value: ticketCard?.ticket.status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'}
+    ];
     
-    useEffect(() => {
-        if (!isFetched.current) {
-            fetchTicketDetails(params.id)
-            isFetched.current = true
-        }
-    }, [isFetched.current]);
+    useEffect(() => {   
+        const fetchTicketData = async (usr: User, tid: string) => {
+            try {
+                const response: TicketObject = await getUserTicketById(usr.id, tid);
 
-    useEffect(() => {}, [auth]);
-
-    const fetchTicketDetails = async (id: string | undefined) => {
-        if (id === undefined) {
-            return;
+                setTicketCard(response);
+            } catch (error) {
+                return;
+            }
         }
 
-        console.log("PARAMS ID: ", id);
-
-        if (!auth.currentUser?.uid) {
-            return;
+        if (user && ticketId) {
+            fetchTicketData(user, ticketId);
         }
-
-        const response = await getUserTicketById(auth.currentUser.uid , id);
-        
-        if (response) {
-            console.log("TICKET: ", response)
-            setTicket(response);
-            if (response.ticket.response)
-                setTicketResponse(response.ticket.response);
-            setIsLoading(false)
-        }
-
-    }
-
-    if (isLoading || !auth.currentUser?.displayName) {
-        return <div>Loading...</div>
-    }
+    }, [user, ticketId]);
 
     const handleDeleteDialog = (value: boolean) => {
         setIsDeleteDialogOpen(value);
@@ -93,50 +69,9 @@ export const TicketDetails = () => {
         setIsVersionOpen(value);
     }
 
-    const handleTicketUpdateById = async () => {
-        if (!ticket) {
-            throw new Error(`Invalid ticket data`);
-        }
-
-        if (!params.id) {
-            throw new Error(`Invalid ticket id`);
-        }
-
-        if (!auth.currentUser?.displayName) {
-            throw new Error(`Invalid ticket handler `);
-        }
-
-        if (!ticketResponse || ticketResponse.length < 9) {
-            throw new Error(`Invalit ticket response. The response should be at least 10 characters long!`);
-        }
-
-        const formData: Ticket = {
-            id: ticket.ticket.id,
-            title: ticket.ticket.title,
-            authorId: ticket.ticket.authorId,
-            description: ticket.ticket.description,
-            deadline: ticket.ticket.deadline,
-            handlerId: ticket.ticket.handlerId,
-            createdAt: ticket.ticket.createdAt,
-            closedAt: ticket.ticket.closedAt,
-            status: ticket.ticket.status,
-            priority: ticket.ticket.priority,
-            type: ticket.ticket.type,
-            response: ticket.ticket.response,
-            files: ticket.ticket.files,
-            notified: ticket.ticket.notified,
-        }
-
-        const response = await updateTicketById(params.id, formData, auth.currentUser?.displayName);
-
-        if (response) {
-            console.log("updated response");
-            isFetched.current = false;
-        }
-    }
-
-    if (!ticket) {
-        return <>Loading...</>
+  
+    if (loading || !user || !ticketId || !ticketCard) {
+        return <div>Loading...</div>
     }
 
     return (
@@ -144,24 +79,23 @@ export const TicketDetails = () => {
         <div className='block lg:flex w-full'>
             <div className='block w-full lg:w-2/3'>
                 <div className='w-full lg:w-5/6 bg-gray-50 rounded-md shadow-md p-2'>
-                    <h1 className='text-lg font-semibold'>{ticket?.ticket.title}</h1>
+                    <h1 className='text-lg font-semibold'>{ticketCard.ticket.title}</h1>
                     <p 
                         className='my-2 text-md font-sans'
-                        dangerouslySetInnerHTML={{ __html: ticket.ticket.description }}
+                        dangerouslySetInnerHTML={{ __html: ticketCard.ticket.description }}
                     />
 
                     <div className='flex my-2'>
-                        {/* TODO: REPLACE WITH PICTURE */}
                         <img 
-                            src={ticket.author.photoUrl}  
+                            src={ticketCard.author.photoUrl}  
                             alt="dafault" 
                             className='w-8 rounded-full mr-4'
                         />
-                        <h6 className='text-md font-semibold my-1'>{ticket.author.displayName}</h6>
+                        <h6 className='text-md font-semibold my-1'>{ticketCard.author.displayName}</h6>
                     </div>
 
                     <div className='flex'>    
-                        {(auth.currentUser.uid === ticket?.ticket.handlerId || userRole === 'admin') &&
+                        {canUpdateStatus &&
                             <button
                                 onClick={() => setIsStatusUpdateOpen(!isStatusUpdateOpen)} 
                                 className={
@@ -173,7 +107,7 @@ export const TicketDetails = () => {
                             </button>
                         }
 
-                        {(auth.currentUser.displayName === ticket?.ticket.authorId || userRole === 'admin') &&
+                        {canEditTicket &&
                             <button
                                 onClick={() => setIsEditDialogOpen(!isEditDialogOpen)}
                                 className={
@@ -185,7 +119,7 @@ export const TicketDetails = () => {
                             </button>
                         }
 
-                        {userRole === 'admin' &&
+                        {canDeleteTicket &&
                             <button
                                 onClick={() => handleDeleteDialog(!isDeleteDialogOpen)} 
                                 className={
@@ -218,45 +152,27 @@ export const TicketDetails = () => {
             </div>
 
             <div className='block w-full lg:w-3/4'>
-                <div className='w-full lg:w-3/4 bg-gray-50 rounded-md shadow-md p-2'>
-                    <h1 className='text-md lg:text-lg font-semibold my-4 mx-2'>Ticket Response:</h1>
-                    <TextEditor 
-                        value={ticketResponse}
-                        onChange={setTicketResponse}
-                        readonly={false}
-                    />
-
-                    <div className='flex justify-end mt-10 mb-4'>
-                        <button
-                            onClick={handleTicketUpdateById}
-                            disabled={ticketResponse === '' ? true : false} 
-                            className={`${ticketResponse === '' ? 'bg-emerald-400 text-gray-100' : 'bg-green-600 text-white'} rounded-md mr-5 p-2`}
-                        >
-                            Save changes
-                        </button>
-                    </div>
-                </div>
+                <TicketResponse 
+                    ticket={ticketCard.ticket}
+                />
     
                 <FilesUpload 
-                    ticketId={params.id}
-                    author={auth.currentUser.displayName}
+                    ticketId={ticketId}
+                    author={user.displayName}
                     method={updateTicketById}
-                    data={ticket.ticket}
+                    data={ticketCard.ticket}
                     type={"ticket"}
                     isFetched={isFetched}
                 />
-
             </div>
 
             {/* Dialog Overlay */}
             {isStatusUpdateOpen && (
                 <UpdateStatusDialog 
-                    status={ticket.ticket.status}
+                    defaultStatus={ticketCard.ticket.status}
                     onClose={handleUpdateDialog}
-                    type={"ticket"}
                     options={statusUpdateMenu}
-                    id={params.id}
-                    ticket={ticket.ticket}
+                    ticket={ticketCard.ticket}
                     isFetched={isFetched}
                 />
             )}
@@ -264,8 +180,8 @@ export const TicketDetails = () => {
             {isEditDialogOpen && 
                 <EditTicketDialog 
                     onClose={handleEditDialog}
-                    ticketId={params.id}
-                    ticketData={ticket.ticket}
+                    ticketId={ticketId}
+                    ticketData={ticketCard.ticket}
                     isFetched={isFetched}
                 />
             }
@@ -274,12 +190,11 @@ export const TicketDetails = () => {
                 <DeleteDialog 
                     onClose={() => setIsDeleteDialogOpen(!isDeleteDialogOpen)}
                     type="ticket"
-                    id={params.id}
+                    id={ticketId}
                 />
             )}
 
-            </div>
-
+        </div>
             <div
                 onClick={() => handleIsVersionOpen(!isVersionOpen)} 
                 className='w-5/6 flex my-10 text-gray-500 font-semibold text-lg hover:bg-gray-50 cursor-pointer p-1'
@@ -296,7 +211,10 @@ export const TicketDetails = () => {
 
             {
                 isVersionOpen &&
-                <TicketVersionsDetails isOpen={isVersionOpen} />
+                <TicketVersionsDetails 
+                    isOpen={isVersionOpen}
+                    ticketId={ticketCard.ticket.id} 
+                />
             }
         </div>
     );

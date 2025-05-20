@@ -1,55 +1,35 @@
-import React from 'react';
-import { FaDownload } from "react-icons/fa";
+import React, {useState, useEffect} from 'react';
+import { TicketVersion } from '../../types/Versions';
 import { TextEditor } from '../TextEditor';
+import { getTicketVersions } from '../../api/versions';
 
-interface TicketVersionsDetailsProps {
-    isOpen: boolean
-}
+type TicketVersionsDetailsType = {
+    isOpen: boolean;
+    ticketId: string;
+};
 
-const tickets = [
-    {
-        Author: 'John',
-        AuthorPicture: '',
-        CreatedAt: '',
-        Deadline: '',
-        Description: 'Test ticket versioning system ',
-        Files: [],
-        Handler: '',
-        HandlerId: '',
-        Priority: 'Hight',
-        Response: '',
-        Status: 'New',
-        Title: 'Ticket',
-        Type: 'Feature',
-        updatedAt: 'June 24, 2024 at 8:17:12 AM UTC+3',
-        updatedBy: 'Horatiu Crisan',
-        version: 1719206232945
+export const TicketVersionsDetails: React.FC<TicketVersionsDetailsType> = ({isOpen, ticketId}) => {
+    const [ticketVersions, setTicketVersions] = useState<TicketVersion[]>([]);
+    const [startAfter, setStartAfter] = useState<string | undefined>(undefined);
 
-    },
-    {
-        Author: 'John',
-        AuthorPicture: '',
-        CreatedAt: '',
-        Deadline: '',
-        Description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum",
-        Files: [],
-        Handler: '',
-        HandlerId: '',
-        Priority: 'Hight',
-        Response: '',
-        Status: 'New',
-        Title: 'Ticket',
-        Type: 'Feature',
-        updatedAt: 'June 24, 2024 at 8:17:12 AM UTC+3',
-        updatedBy: 'Horatiu Crisan',
-        version: 1719206232945
-    }
-]
+    useEffect(() => {
+        const fetchTicketVersions = async () => {
+            try {
+                const response: TicketVersion[] = await getTicketVersions(ticketId, "ticket", 10, undefined);
 
-export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isOpen}) => {
+                setTicketVersions(response);
+            } catch (error) {
+                console.error(error);
+                return;
+            }
+        }
+
+        fetchTicketVersions();
+    }, [ticketId])
+
     return (
         <div className='block w-full lg:w-5/6 pl-4'>
-            {tickets.map((ticket, id) => (
+            {ticketVersions.map((ticketVersion, id) => (
                 <div
                     key={id}
                     className=''
@@ -59,19 +39,13 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                             <span className='font-bold'>
                                 Version:
                             </span> 
-                            <span> {ticket.version}</span>
-                        </h1>
-                        <h1>
-                            <span className='font-bold'>
-                                Updated by: 
-                            </span> 
-                             <span> {ticket.updatedBy}</span>
+                            <span> {ticketVersion.version}</span>
                         </h1>
                         <p>
                             <span className='font-bold'>
                                 Updated at: 
                             </span> 
-                            <span> {ticket.updatedAt}</span>
+                            <span> {new Date(ticketVersion.timestamp).toLocaleTimeString()}</span>
                         </p>
                     </div>
 
@@ -88,7 +62,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="title"
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Title}
+                                    value={ticketVersion.data.title}
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mb-4 mt-2' 
                                 />
                             </label>
@@ -99,7 +73,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="author" 
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Author} 
+                                    value={ticketVersion.data.authorId} 
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mb-4 mt-2'
                                 />
                             </label>
@@ -110,7 +84,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="handler" 
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Handler.length > 0 ? ticket.Handler : 'No handler'} 
+                                    value={ticketVersion.data.handlerId ? ticketVersion.data.handlerId : `No handler`} 
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mb-4 mt-2'
                                 />
                             </label>
@@ -126,7 +100,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="type"
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Type}
+                                    value={ticketVersion.data.type}
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mb-4 mt-2' 
                                 />
                             </label>
@@ -137,7 +111,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="priority" 
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Priority} 
+                                    value={ticketVersion.data.priority} 
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mb-4 mt-2'
                                 />
                             </label>
@@ -148,7 +122,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                                     id="status"  
                                     type="text"
                                     disabled={true}
-                                    value={ticket.Status} 
+                                    value={ticketVersion.data.status} 
                                     className='block w-full rounded-lg p-2 text-gray-500 bg-white mt-2 mb-4'
                                 />
                             </label>
@@ -161,7 +135,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                             >
                                 Description
                                 <TextEditor 
-                                    value={ticket.Description}
+                                    value={ticketVersion.data.description}
                                     onChange={() => {}}
                                     readonly={true}
                                     classname='block w-full bg-white text-gray-500 rounded-lg p-2 mt-2 mn-4 h-40 max-h-64 overflow-y-auto'
@@ -176,7 +150,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                             >
                                 Response
                                 <TextEditor 
-                                    value={ticket.Response.length > 0 ? ticket.Response: 'No response'}
+                                    value={ticketVersion.data.response ? ticketVersion.data.response : "No response"}
                                     onChange={() => {}}
                                     readonly={true}
                                     classname='block w-full bg-white text-gray-500 rounded-lg p-2 mt-2 mn-4 h-40 max-h-64 overflow-y-auto'
@@ -184,7 +158,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                             </label>
                         </div>
 
-                        <div className='block my-4'>
+                        {/* <div className='block my-4'>
                             {ticket.Files && ticket.Files.map((file, FileId) => (
                                 <span
                                     key={FileId} 
@@ -195,7 +169,7 @@ export const TicketVersionsDetails: React.FC<TicketVersionsDetailsProps> = ({isO
                             ))
                                 
                             }
-                        </div>
+                        </div> */}
                     </form>
                 </div>
             ))}

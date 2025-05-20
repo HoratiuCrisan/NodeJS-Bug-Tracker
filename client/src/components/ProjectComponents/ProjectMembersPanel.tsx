@@ -1,5 +1,5 @@
 import React, {useState} from 'react'
-import { User } from '../../utils/types/Project'
+import { User } from '../../types/User'
 import { IoIosArrowForward } from "react-icons/io"
 
 interface Props {
@@ -19,24 +19,21 @@ export const ProjectMembersPanel: React.FC<Props> = ({members, manager, onClose,
             />
             <div className='flex'>
                 <img 
-                    src={mngr.PhotoUrl} 
+                    src={mngr.photoUrl} 
                     alt="manager"
                      
                     className='rounded-full w-12 h-12'
                 />
 
                 <div className='block mx-2'>
-                    <h6>{mngr.DisplayName}</h6>
-                    <p>{mngr.Email}</p>
+                    <h6>{mngr.displayName}</h6>
+                    <p>{mngr.email}</p>
                     <div className='flex'>
-                        {mngr.Roles.map((role, id) => (
                             <h6 
-                                key={id}
                                 className='border-2 border-green-700 rounded-md mr-2 px-1'
                             >
-                                {role}
+                                {mngr.role}
                             </h6>
-                        ))}
                     </div>
                 </div>
 
@@ -53,23 +50,22 @@ export const ProjectMembersPanel: React.FC<Props> = ({members, manager, onClose,
                     className='flex my-2'
                 >
                     <img 
-                        src={member.PhotoUrl} 
+                        src={member.photoUrl} 
                         alt={`member ${id}`}
                         className='rounded-full w-12 h-12' 
                     />
 
                     <div className='block mx-2'>
-                        <h6>{member.DisplayName}</h6>
-                        <p>{member.Email}</p>
+                        <h6>{member.displayName}</h6>
+                        <p>{member.email}</p>
                         <div className='flex'>
-                        {member.Roles.map((role, id) => (
+                        
                             <h6
-                                key={id} 
                                 className='border-2 border-green-700 rounded-md mr-2 px-1'
                             >
-                                {role}
+                                {member.role}
                             </h6>
-                        ))}
+                        
                     </div>
                     </div>
                 </div>

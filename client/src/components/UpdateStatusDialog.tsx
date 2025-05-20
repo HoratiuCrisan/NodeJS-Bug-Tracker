@@ -1,28 +1,30 @@
-import React, {useState} from 'react'
+import React, {useContext, useState} from 'react'
 import {IoCloseOutline} from 'react-icons/io5'
 import Select from 'react-select'
 import { selectStyles, customStyles } from '../utils/Select-Styles'
 import { updateTicketById } from '../api/tickets'
-import { Ticket } from '../utils/types/Ticket'
+import { Ticket } from '../types/Ticket'
 import { useNavigate } from 'react-router-dom'
-import { getAuth } from 'firebase/auth'
+import { UserContext } from '../context/UserProvider'
 
-interface UpdateStatusProps {
-    status: string
+type UpdateStatusDialogType = {
+    defaultStatus: string;
     onClose: (value: boolean) => void
-    type: string
     options: {label: string, value: string}[]
-    id: string | undefined
-    ticket: Ticket | undefined;
+    ticket: Ticket;
     isFetched: React.MutableRefObject<boolean>;
 }
 
 
-export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose, type, options, id, ticket, isFetched}) => {
+export const UpdateStatusDialog: React.FC<UpdateStatusDialogType> = ({defaultStatus, onClose, options, ticket, isFetched}) => {
+    const { loading, user } = useContext(UserContext);
     const navigate = useNavigate()
-    const auth = getAuth()
-    const [statusUpdateValue, setStatusUpdateValue] = useState<string | undefined>(status)
+    const [statusUpdateValue, setStatusUpdateValue] = useState<string | undefined>(defaultStatus)
     const [error, setError] = useState<string | null>(null)
+
+    if (!user) {
+        return <div>Loading...</div>
+    }
 
     const handleUpdate = async (id: string | undefined) => {
         setError(null)
@@ -41,7 +43,7 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
             return
         }
 
-        if (!auth.currentUser?.displayName) {
+        if (user.displayName) {
             setError("Unauthenticated user! Please login!")
             return
         }
@@ -66,7 +68,7 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
             notified: ticket.notified,
         }
 
-        const response = await updateTicketById(id, changedTicket, auth.currentUser.displayName)
+        const response = await updateTicketById(id, changedTicket);
 
         if (!response) {
             setError("Error! Failed to update ticket")
@@ -79,7 +81,7 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="w-4/5 md:w-2/4 lg:w-2/5 xl:w-1/4 bg-gray-50 p-4 rounded-lg shadow-lg">
+            <div className="w-4/5 md:w-3/5 lg:w-3/6 xl:w-2/6 bg-gray-50 p-4 rounded-lg shadow-lg">
                 <div className='block justify-center mx-auto w-full bg-gray-50'>
                     <div className='flex w-full justify-end items-end text-end'>
                         <IoCloseOutline 
@@ -89,12 +91,12 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
                         />
                     </div>
 
-                    <h1 className='flex justify-center text-lg my-2'>Update {type} status</h1>
+                    <h1 className='flex justify-center text-lg my-2'>Update ticket status</h1>
 
                     <div className='flex justify-center items-center mx-auto my-8'>
                         <Select 
                             options={options}
-                            defaultValue={{label: status, value: status}}
+                            defaultValue={{label: defaultStatus, value: defaultStatus}}
                             className='w-1/3'
                             placeholder='Update Status'
                             onChange={(e) => setStatusUpdateValue(e?.value)}
@@ -104,9 +106,9 @@ export const UpdateStatusDialog: React.FC<UpdateStatusProps> = ({status, onClose
 
                     <div className='flex justify-center mx-auto pb-6'>
                         <button
-                            disabled={statusUpdateValue  !== status ? false : true} 
-                            onClick={() => handleUpdate(id)}
-                            className={`${statusUpdateValue  !== status ? 'bg-green-600 hover:bg-green-700' : 'bg-emerald-400'} text-white rounded-md p-2 `}
+                            disabled={statusUpdateValue  !== defaultStatus ? false : true} 
+                            onClick={() => handleUpdate(ticket.id)}
+                            className={`${statusUpdateValue  !== defaultStatus ? 'bg-green-600 hover:bg-green-700' : 'bg-emerald-400'} text-white rounded-md p-2 `}
                         >
                             Save Changes
                         </button>

@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse, AxiosStatic } from "axios";
-import { ApiSuccess, ApiError } from "../utils/types/Api";
+import { ApiSuccess, ApiError } from "../types/Api";
+import { auth } from "../config/firebase";
 
 /**
  * 
@@ -14,6 +15,21 @@ const getAxiosInstance = (endpoit: string) => {
             "Content-Type": "application/json",
         },
     });
+
+    axiosInstance.interceptors.request.use(
+        async (config) => {
+            const user = auth.currentUser;
+            if (user) {
+                const token = await user.getIdToken();
+                
+                if (token && config.headers) {
+                    config.headers.set(`Authorization`, `Bearer ${token}`);
+                }
+            }
+            return config;
+        },
+        (error) => Promise.reject(error)
+    );
 
     axiosInstance.interceptors.response.use(
         /* Check if the success of the response if false, and throw an unexpected error */
@@ -38,7 +54,7 @@ const getAxiosInstance = (endpoit: string) => {
                     name: error.response.data.name,
                 });
             /* Check if the error is caused by a network issue */
-            } else if (error.response) {
+            } else if (!error.response) {
                 return Promise.reject({
                     isNetworkError: true,
                     message: "No response received from the server",

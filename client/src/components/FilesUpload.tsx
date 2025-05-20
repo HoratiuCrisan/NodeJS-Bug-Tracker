@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { IoIosClose } from 'react-icons/io';
-import { Ticket } from '../utils/types/Ticket';
+import { Ticket } from '../types/Ticket';
 import { AxiosResponse } from 'axios';
 import { ErrorDialog } from './ErrorDialog';
 
 interface Props {
   ticketId: string | undefined;
-  method: (id: string, ticket: Ticket, author: string | null) => Promise<AxiosResponse<any, any> | null | undefined>;
+  method: (id: string, ticket: Ticket) => Promise<Ticket>;
   data: Ticket | undefined;
   author: string | null;
   type: string;
@@ -120,9 +120,9 @@ export const FilesUpload: React.FC<Props> = ({ ticketId, method, data, type, aut
         notified: data.notified,
       };
 
-      const response = await method(ticketId, updatedTicket, author);
+      const response = await method(ticketId, updatedTicket);
       if (response) {
-        console.log(response.data);
+        console.log(response);
         setFiles(null);
       } else {
         setError('Error! Failed to upload files!');

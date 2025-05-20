@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useContext, useRef} from 'react';
-import { getUserConversations, createConversation } from '../../api/messages/chats';
-import { Message } from '../../utils/types/Chat';
+import { getUserConversations, createConversation } from "../../api/chats";
+import { Message, ChatConversation} from '../../types/Chat';
 import { getAuth } from 'firebase/auth';
 import {io} from "socket.io-client"
 import '../../styles/Scrollbar.css';
@@ -13,7 +13,7 @@ interface ConversationProps {
 
 export const Conversation: React.FC<ConversationProps> = ({conversationId, participants}) => {
     const latestMessageRef = useRef<HTMLDivElement | null>(null);
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<ChatConversation[]>([])
     useEffect(() => {
         const socket = io("http://localhost:8003");
             handleConversation();
@@ -38,7 +38,7 @@ export const Conversation: React.FC<ConversationProps> = ({conversationId, parti
 
     const handleConversation = async () => {
         try {
-            const response: Message[] = await getUserConversations(conversationId);
+            const response = await getUserConversations();
 
             if (response) {
                 setMessages(response);
@@ -46,7 +46,7 @@ export const Conversation: React.FC<ConversationProps> = ({conversationId, parti
 
             if (response === undefined) {
                 try {
-                    const createConvResponse = await createConversation(conversationId, participants);
+                    const createConvResponse = await createConversation(conversationId);
 
                 } catch (createError) {
                     console.error(createError);
@@ -69,10 +69,10 @@ export const Conversation: React.FC<ConversationProps> = ({conversationId, parti
       {messages.map((msg, id) => (
         <div
           key={id}
-          className={`flex ${msg.senderId === getAuth().currentUser?.uid ? 'justify-end' : 'justify-start'} items-start mb-4`}
+          className={`flex ${msg.id === getAuth().currentUser?.uid ? 'justify-end' : 'justify-start'} items-start mb-4`}
         >
-          <span className={`block max-w-sm lg:max-w-md 2xl:max-w-xl rounded-2xl text-lg px-6 py-1 ${msg.senderId === getAuth().currentUser?.uid ? 'bg-blue-400 text-white self-end' : 'bg-gray-300 text-gray-800 self-start'}`}>
-            {msg.text}
+          <span className={`block max-w-sm lg:max-w-md 2xl:max-w-xl rounded-2xl text-lg px-6 py-1 ${msg.id === getAuth().currentUser?.uid ? 'bg-blue-400 text-white self-end' : 'bg-gray-300 text-gray-800 self-start'}`}>
+            {msg.lastMessage}
           </span>
         </div>
       ))}

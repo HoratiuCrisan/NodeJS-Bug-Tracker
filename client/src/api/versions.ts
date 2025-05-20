@@ -1,5 +1,5 @@
 import { getAxiosInstance } from "./axiosInstance";
-import { Version } from "../utils/types/Versions";
+import { TicketVersion, TaskVersion, SubtaskVersion } from "../types/Versions";
 import { env } from "../utils/evnValidation";
 
 /* Initialize the axios instance for the version service */
@@ -14,12 +14,12 @@ const axios = getAxiosInstance(env.REACT_APP_VERSIONS_END_POINT);
  * @param {string} type The type of item
  * @returns {Promise<Version>} The version data of the item
  */
-const getItemVersion = async (itemId: string, versionId: string, type: string): Promise<Version> => {
+const getItemVersion = async (itemId: string, versionId: string, type: string): Promise<TicketVersion | TaskVersion | SubtaskVersion> => {
     /* Send the request to the version server */
     const response = await axios.get(`/${type}/${itemId}/${versionId}`);
 
     /* Return the response data */
-    return response.data.data as Version;
+    return response.data.data;
 }
 
 /**
@@ -30,12 +30,32 @@ const getItemVersion = async (itemId: string, versionId: string, type: string): 
  * @param {string | undefined} startAfter The ID of the last item version retrieved at the previous fetching request
  * @returns {Promise<Version[]>} The list of item versions retrieved
  */
-const getItemVersions = async (itemId: string, type: string, limit: number, startAfter?: string): Promise<Version[]> => {
+const getItemVersions = async (itemId: string, type: string, limit: number, startAfter?: string): Promise<TicketVersion[] | TaskVersion[] | SubtaskVersion[]> => {
     /* Send the reqeust to the version server */
     const response = await axios.get(`/$${type}/${itemId}?limit=${limit}&startAfter=${startAfter}`);
 
     /* Return the response data */
-    return response.data.data as Version[];
+    if (type === "ticket") return response.data.data as TicketVersion[];
+
+    if (type === "task") return response.data.data as TaskVersion[];
+
+    return response.data.data as SubtaskVersion[];
+}
+
+/**
+ * 
+ * @param {string} itemId The ID of the item
+ * @param {string} type The type of item
+ * @param {number} limit The number of versions to retrieve 
+ * @param {string | undefined} startAfter The ID of the last item version retrieved at the previous fetching request
+ * @returns {Promise<TicketVersion[]>} The list of item versions retrieved
+ */
+const getTicketVersions = async (itemId: string, type: string, limit: number, startAfter?: string): Promise<TicketVersion[]> => {
+    /* Send the reqeust to the version server */
+    const response = await axios.get(`/${type}/${itemId}?limit=${limit}&startAfter=${startAfter}`);
+
+    /* Return the response data */
+    return response.data.data as TicketVersion[];
 }
 
 /* PUT requests */
@@ -76,6 +96,7 @@ const deleteItem = async (itemId: string, type: string): Promise<string> => {
 export {
     getItemVersion,
     getItemVersions,
+    getTicketVersions,
     deleteItemVersions,
     deleteItem,
 };

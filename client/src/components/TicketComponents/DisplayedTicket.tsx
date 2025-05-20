@@ -1,163 +1,97 @@
 import React, {useEffect, useState, useRef, useContext} from 'react'
-import { getTicketsByUsername, getAllTickets } from '../../api/tickets'
-import { TicketCard } from '../../utils/types/Ticket'
-import { selectTickets } from './SelectTickets'
+import { getUserTickets, getAllTickets } from '../../api/tickets'
+import { TicketCardType } from '../../types/Ticket'
 import Select, { SingleValue } from 'react-select'
 import { selectStyles, customStyles } from '../../utils/Select-Styles'
 import { TicketSearch } from './TicketSearch'
 import { OrderTickets } from './OrderTickets'
 import { TbArrowsDownUp ,TbArrowsUpDown } from "react-icons/tb"
 import { handleTicketOrderChange } from './OrderTickets'
-import { TicketDisplayNumber } from './TicketDisplayNumber'
 import { TicketViewContainer } from './TicketViewContainer'
-import { getAuth } from 'firebase/auth'
+import { ticketsSortOptions, displayTicketOptions } from "../../utils/selectOptions";
 import { UserContext } from '../../context/UserProvider'
-
-const displayOptions = [
-  {label: "New", value: "New"},
-  {label: "All", value: "All"},
-  {label: "In progress", value: "In-Progress"},
-  {label: "Completed", value: "Done"}
-]
-
-const ticketsSortOptions = [
-  {label: "Title", value: "Title"},
-  {label: "Deadline", value: "Deadline"},
-  {label: "Priority", value: "Priority"}
-]
-
-const ticketViewNumberOptions = [
-  {label: "5", value: 5},
-  {label: "10", value: 10},
-  {label: "25", value: 25},
-  {label: "50", value: 50}
-]
 
 
 export const DisplayedTicket = () => {
-  const {userRole, loading} = useContext(UserContext);
-  const auth = getAuth();
-  const isInitialMout = useRef(true)
-  const [tickets, setTickets] = useState<TicketCard[]>([])
-  const [displayedTickets, setDisplayedTickets] = useState<TicketCard[]>([])
-  const [displayOption, setDisplayOption] = useState<{label: string, value: string}>(displayOptions[0])
-  const [displayOrder, setDisplayOrder] = useState<string>('asc')
-  const [orderValue, setOrderValue] = useState<string>('title')
-  const [ticketsNumberDisplayed, setTicketsNumberDisplayed] = useState<number>(5)
+	const {user, loading} = useContext(UserContext);
+	const [tickets, setTickets] = useState<TicketCardType[]>([]);
+	const [displayOption, setDisplayOption] = useState<{label: string, value: string}>(displayTicketOptions[0])
+	const [displayOrder, setDisplayOrder] = useState<string>('asc');
+	const [orderValue, setOrderValue] = useState<string>('title');
+	const [searchQuery, setSearchQuery] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    if (isInitialMout.current && !loading) {
-      isInitialMout.current = false
-      fetchUserTickets()
-    }
-  }, [loading])
+	useEffect(() => {
+		
+	}, [user]);
 
+	const handleOptionChange = (option: SingleValue<{label: string, value: string}>) => {
+		if (option) {
+			setDisplayOption({label: option.label, value: option.value})
+		} 
+	}
 
-  const fetchUserTickets = async () => {
-    try {
-      if (!auth.currentUser || !auth.currentUser.displayName) {
-        throw new Error("Error! Unautorized user! Please login!");
-      }
+  	const handleDisplayedTicketsChange = (tickets: TicketCardType[], text: string) => {
+		if (text === '') {
+		handleOptionChange(displayOption)
+		} 
+  	}
 
-      let response: TicketCard[] = [];
+	const handleOrderTicketsChange = (tickets: TicketCardType[]) => {
+		setTickets(tickets)
+	}
 
-      if (userRole?.toLowerCase() === "admin") {
-        response = await getAllTickets(10, orderValue, displayOrder, undefined, undefined, undefined);
-        console.log("Fetched as admin");
-      } else {
-        console.log("Fetched as user");
-        response = await getTicketsByUsername(auth.currentUser.uid, 10, orderValue, displayOrder, undefined, undefined, undefined);
-      }
+	if (loading || !user) {
+		return <div>Loading...</div>
+	}
 
-      
-      if (response) {
-        console.log(response)
-        setTickets(selectTickets(response, "all"))
-        setDisplayedTickets(selectTickets(response, "all"))
-      }
-    } catch (error) {
-      console.error("Faild to fetch tickets: " + error)
-    }
-  }
+	return (
+		<div className='w-full block'>
+			<div className='flex '>
+				<TicketSearch 
+					tickets={tickets}
+					displayTickets={handleDisplayedTicketsChange}
+				/>
+				<Select 
+					options={displayTicketOptions}
+					styles={{...selectStyles("#cbd5e1", "#000"), ...customStyles}}
+					className='w-1/5 z-10 relative outline-none focus:outline-none mr-4'
+					value={displayOption}
+					onChange={(e) => handleOptionChange}
+				/>
 
-  const handleOptionChange = (option: SingleValue<{label: string, value: string}>) => {
-    if (option) {
-      setDisplayedTickets(selectTickets(tickets, option.label))
-      setDisplayOption({label: option.label, value: option.value})
-    } 
-    // TODO: DISPLAY ERROR MESSAGE CARD FOR UNDEFINED
-  }
+			
+				<OrderTickets 
+					options={ticketsSortOptions}
+					items={tickets}
+					setItems={handleOrderTicketsChange}
+					setOrderValue={(value: string) => setOrderValue(value)}
+					orderStyle={'w-1/5 z-10 relative outline-none focus:outline-none'}
+					styles={{...selectStyles("#cbd5e1", "#000"), ...customStyles}}
+					order={displayOrder}
+				/>   
 
-  const handleDisplayedTicketsChange = (tickets: TicketCard[], text: string) => {
-    if (text === '') {
-       handleOptionChange(displayOption)
-    } else {
-      setDisplayedTickets(tickets)
-    }
-  }
+				<button
+					onClick={() => 
+						{
+						setDisplayOrder(displayOrder === 'asc' ? 'desc' : 'asc'); 
+						handleOrderTicketsChange(handleTicketOrderChange(orderValue, tickets, displayOrder === 'asc' ? 'desc' : 'asc'))
+						}}
+					className='p-2 border border-gray-800 rounded-md justify-center text-center items-center mx-2 bg-white'
+				>
+				{
+					displayOrder === 'asc' ? <TbArrowsUpDown /> : <TbArrowsDownUp />
+				}
+				</button>
+			</div>
 
-  const handleOrderTicketsChange = (tickets: TicketCard[]) => {
-    setDisplayedTickets(tickets)
-  }
-
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
-  return (
-    <div className='w-full block '>
-
-      <div className='flex '>
-        <Select 
-          options={displayOptions}
-          styles={{...selectStyles("#cbd5e1", "#000"), ...customStyles}}
-          className='w-1/5 z-10 relative outline-none focus:outline-none'
-          value={displayOption}
-          placeholder={"Display tickets..."}
-          onChange={(e) => handleOptionChange}
-        />
-
-        <TicketSearch 
-          tickets={displayedTickets}
-          displayTickets={handleDisplayedTicketsChange}
-        />
-
-        <OrderTickets 
-          options={ticketsSortOptions}
-          items={displayedTickets}
-          setItems={handleOrderTicketsChange}
-          setOrderValue={(value: string) => setOrderValue(value)}
-          orderStyle={'w-1/5 z-10 relative outline-none focus:outline-none'}
-          styles={{...selectStyles("#cbd5e1", "#000"), ...customStyles}}
-          order={displayOrder}
-        />   
-
-        <button
-          onClick={() => 
-            {
-              setDisplayOrder(displayOrder === 'asc' ? 'desc' : 'asc'); 
-              handleOrderTicketsChange(handleTicketOrderChange(orderValue, displayedTickets, displayOrder === 'asc' ? 'desc' : 'asc'))
-            }}
-          className='p-2 border border-gray-800 rounded-md justify-center text-center items-center mx-2'
-        >
-          {
-            displayOrder === 'asc' ? <TbArrowsUpDown /> : <TbArrowsDownUp />
-          }
-        </button>
-
-        <TicketDisplayNumber 
-          items={displayedTickets}
-          options={ticketViewNumberOptions}
-          styles={{...selectStyles("#cbd5e1", "#000"), ...customStyles}}
-          viewStyle={'w-1/12 z-10 relative outline-none focus:none'}
-          setItemsNumbers={(value:number) => setTicketsNumberDisplayed(value)}
-        /> 
-      </div>
-
-        <TicketViewContainer 
-            items={displayedTickets}
-            itemsNumber={ticketsNumberDisplayed}
-        /> 
-    </div>
-  )
+			<TicketViewContainer 
+				limit={10}
+				order={orderValue}
+				orderDirection={displayOrder}
+				searchQuery={searchQuery}
+				priority={undefined}
+				status={undefined}
+			/>
+		</div>
+	)
 }
