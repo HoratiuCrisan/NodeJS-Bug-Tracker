@@ -1,16 +1,14 @@
 import { UserRepository } from "../repository/userRepository";
 import { AppError } from "@bug-tracker/usermiddleware";
 import { User } from "../types/User";
-import { SocketService } from "./socketService";
+import { socketService } from "./socketService";
 import { eventBus } from "../utils/eventBus";
 
 export class UserService {
     private _userRepository: UserRepository;
-    private _socketService: SocketService;
 
     constructor() {
         this._userRepository = new UserRepository();
-        this._socketService = new SocketService();
     
         eventBus.on("user-status-changed", async(userId: string, status: string) => {
             await this.updateUserStatus(userId, status);
@@ -93,6 +91,10 @@ export class UserService {
         return await this._userRepository.getUsersData(userIds);
     }
 
+    async getNonUsers(): Promise<User[]> {
+        return await this._userRepository.getNonUsers();
+    }
+
     /**
      * 
      * @param {string} userId The ID of the user to update
@@ -137,7 +139,7 @@ export class UserService {
         const user = await this._userRepository.updateUserRole(userId, role);
 
         /* Notify the user about his role change */
-        this._socketService.emitToUser(userId, "role-update", {
+        socketService.emitEventToRoom(userId, "role-update", {
             message: `Your role was changed to: ${role}`,
             data: user,
         });
@@ -171,7 +173,11 @@ export class UserService {
         }
 
         /* Send the data to the repository layer to update the satatus */
-        return this._userRepository.updateUserStatus(userId, status);
+        const user = await this._userRepository.updateUserStatus(userId, status);
+
+        socketService.emitEventToAll("user-status-change", {userId, status});
+
+        return user;
     }
 
     /**
@@ -189,5 +195,15 @@ export class UserService {
 
         /* Send the ID of the user to the repository layer to delete the user data */
         return this._userRepository.deleteUser(userId);
+    }
+
+     parseIds(ids: unknown): string[] {
+        if (!ids) return [];
+
+        if (Array.isArray(ids)) {
+            return ids.map(id => String(id));
+        }
+
+        return [String(ids)];
     }
 }

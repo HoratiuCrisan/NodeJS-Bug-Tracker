@@ -1,57 +1,81 @@
 import { Server } from "socket.io";
 import { Server as HttpServer } from "http";
-import { AppError } from "@bug-tracker/usermiddleware";
-import { eventBus } from "../utils/eventBus";
+import { UserRepository } from "../repository/userRepository";
 
-export class SocketService {
+class SocketService {
     private io: Server | null = null;
-    private userSockets: Map<string, string> = new Map();
+    private socketToUserMap = new Map<string, string>();
+    private userConnectionCount = new Map<string, number>();
+    private _userRepository = new UserRepository();
 
     initialize(server: HttpServer) {
         this.io = new Server(server, {
             cors: {
                 origin: "http://localhost:3000",
-                methods: ["POST", "GET", "PUT", "DELETE"],
+                methods: ["GET", "POST", "PUT", "DELETE"],
+                credentials: true,
             },
         });
 
         this.io.on("connection", (socket) => {
-            console.log("User connected: " + socket.id);
+            console.log("Socket connected: ", socket.id);
 
-            socket.on("user-online", async ({ userId }) => {
-                if (!userId) return;
-                eventBus.emit("user-status-changed", userId, "online");
+            socket.on("join",async  (userId) => {
+                socket.join(userId);
+                this.socketToUserMap.set(socket.id, userId);
 
-                // Remove any existing socket for the user before adding the new one
-                this.userSockets.delete(userId);
-                this.userSockets.set(userId, socket.id);
+                const count = this.userConnectionCount.get(userId) || 0;
+                this.userConnectionCount.set(userId, count + 1);
+
+                if (count === 0) {
+                    console.log(`User ${userId} is now online`);
+                }
+
+                console.log(`User ${userId} joind personal room ${userId}`);
             });
 
             socket.on("disconnect", async () => {
-                // Find user by socket ID
-                const userId = [...this.userSockets.entries()].find(
-                    ([_, socketId]) => socketId === socket.id
-                )?.[0];
+                const userId = this.socketToUserMap.get(socket.id);
 
                 if (userId) {
-                    eventBus.emit("user-status-changed",userId, "offline");
-                    this.userSockets.delete(userId);
+                    this.socketToUserMap.delete(socket.id);
+
+                    const count = (this.userConnectionCount.get(userId) || 1) - 1;
+                    if (count <= 0) {
+                        this.userConnectionCount.delete(userId);
+                        console.log(`User ${userId} is now offline`);
+                    } else {
+                        this.userConnectionCount.set(userId, count);
+                    }
+
+                    const user = await this._userRepository.updateUserStatus(userId, "offline");
+                    const status = user.status;
+
+                    this.emitEventToAll("user-status-change", {userId, status});
                 }
+                console.log("Socket disonnected: ", socket.id);
             });
         });
     }
 
-    getIO() {
+    getIO(): Server {
         if (!this.io) {
-            throw new AppError(`SocketConnectionError`, 500, `Failed to initialized the socket connection`);
+            throw new Error("Socket.IO not initialized");
         }
 
         return this.io;
     }
 
-    emitToUser(userId: string, event: string, data: unknown) {
-        this.io = this.getIO();
+    emitEventToRoom(roomId: string, event: string, data: unknown) {
+        console.log(`[Socket Emit] Emitting event ${event} to room ${roomId}`);
+        const io = this.getIO();
+        io.to(roomId).emit(event, data);
+    }
 
-        this.io.to(userId).emit(event, data);
+    emitEventToAll(event: string, data: unknown) {
+        const io = this.getIO();
+        io.emit(event, data);
     }
 }
+
+export const socketService = new SocketService();

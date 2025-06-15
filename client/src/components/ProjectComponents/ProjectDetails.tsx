@@ -1,191 +1,213 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { Project } from '../../types/Project';
-import { Task } from '../../types/Tasks';
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'react-router-dom'
+import { createInvitationLink, getProjectById } from '../../api/projects';
+import { Project, ProjectCardType } from '../../types/Project';
 import { User } from '../../types/User';
-import { getProjectById, updateProject } from '../../api/projects';
-import { ProjectMembersPanel } from './ProjectMembersPanel';
+import { TasksContainer } from '../TaskComponents/TasksContainer';
+import { ProjectMembersContainer } from './ProjectMembersContainer';
+import { IoShareSocialOutline } from "react-icons/io5";
 import { CreateTaskDialog } from '../TaskComponents/CreateTaskDialog';
-import { useAuth } from '../../config/AuthContext';
-import { AddTaskResponse } from '../TaskComponents/AddTaskResponse';
-import defaultUserPhoto from '../../Images/default-user-photo.svg';
-import '../../styles/TextStyleFormatted.css';
+import { InviteUsersDialog } from './InviteUsersDialog';
+import { BiArrowBack } from 'react-icons/bi';
+
+import { MdEdit } from "react-icons/md";
+import { BiTrash } from 'react-icons/bi';
+
+import { DeleteDialog } from '../DeleteDialog';
+import { EditProjectDialog } from './EditProjectDialog';
+
 
 export const ProjectDetails = () => {
-    const params = useParams();
-    const { currentUser } = useAuth();
-    const [projectDetails, setProjectDetails] = useState<Project>();
-    const [manager, setManager] = useState<User>();
+    const {projectId} = useParams<{projectId: string | undefined}>();
+    const [project, setProject] = useState<Project | undefined>(undefined);
+    const [manager, setManager] = useState<User | undefined>(undefined);
     const [members, setMembers] = useState<User[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [toggleUserPannel, setToggleUserPannel] = useState<boolean>(true);
-    const [toggleAddTask, setToggleAddTask] = useState<boolean>(false);
-    const [toggleResponse, setToggleResponse] = useState<boolean>(false);
-    const [taskResponse, setTaskResponse] = useState<string>('');
-    const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-    const tasksRef = useRef<Task[]>([]);
+    const [membersDialog, setMembersDialog] = useState<boolean>(false);
+    const [projectDetailsDialog, setProjectDetailsDialog] = useState<boolean>(true);
+    const [taskDialog, setTaskDialog] = useState<boolean>(false);
+    const [inviteDialog, setInviteDialog] = useState<boolean>(false);
+    const [inviteLink, setInviteLink] = useState<string>("");
+    const [deleteDialog, setDeleteDialog] = useState<boolean>(false);
+    const [editDialog, setEditDialog] = useState<boolean>(false);
 
     useEffect(() => {
-        if (isLoading) {
-            fetchData();
+        if (projectId) {
+            fetchProjectData(projectId);
         }
-        setIsLoading(false);
-    }, [isLoading]);
+    }, [projectId]);
 
-    const fetchData = async () => {
-        const response: Project = await getProjectById(params.id);
-        if (!response) {
-            // TODO: error handling
+    const fetchProjectData = async (id: string) => {
+        try {
+            const response: ProjectCardType = await getProjectById(id);
+
+            setProject(response.data);
+            setManager(response.projectManager);
+            setMembers(response.members);
+        } catch (error) {
+            console.error(error);
             return;
         }
-        setProjectDetails(response);
-        //setManager(response.);
-        console.log(response);
-    };
+    }
 
-    const handleResponseUpdate = (value: string) => {
-        setTaskResponse(value);
-    };
+    const handleMembersDialog = (value: boolean) => {
+        setMembersDialog(value);
+        setProjectDetailsDialog(!value);
+    }
 
-    const handleSubmitResponseChange = async (task: Task, id: number) => {
-        if (!projectDetails) {
+    const handleProjectSettingsDialog = (value: boolean) => {
+        setProjectDetailsDialog(value);
+        setMembersDialog(!value);
+    }
+
+    const handleTaskDialog = (value: boolean) => {
+        setTaskDialog(value);
+    }
+
+    const handleInviteDialog = (value: boolean) => {
+        setInviteDialog(value);
+    }
+
+    const handleEditDialog = (value: boolean) => {
+        setEditDialog(value);
+    }
+
+    const handleDeleteDialog = (value: boolean) => {
+        setDeleteDialog(value);
+    }
+
+    const handleInvitationLink = async () => {
+        if (!project) return;
+
+        try {
+            const response = await createInvitationLink(project.id);
+
+            setInviteLink(response);
+
+            handleInviteDialog(true);
+        } catch (error) {
+            console.error(error);
             return;
         }
-        // task.Response = task.Response + taskResponse;
-        // const updatedTaskList = [...projectDetails.TaskList];
-        // updatedTaskList[id] = task;
-        // const updatedProjectDetails = { ...projectDetails, TaskList: updatedTaskList };
-        // setProjectDetails(updatedProjectDetails);
-
-        // const response = await updateProject(updatedProjectDetails, params.id);
-        // if (!response) {
-        //     // TODO: handle error
-        //     return;
-        // }
-        setIsLoading(true);
-        setToggleResponse(false);
-        setTaskResponse('');
-    };
-
-    const handleTaskCreation = async (newTask: Task) => {
-        if (!projectDetails) {
-            return
-        }
-
-        // const updateTaskList = [...projectDetails.TaskList, newTask];
-
-        // const updateProjectDetails = {...projectDetails, TaskList: updateTaskList}
-        // setProjectDetails(updateProjectDetails)
     }
 
-    if (!projectDetails) {
-        return <div>No project details yet</div>;
-    }
-
-    if (!manager) {
-        return <div>Loading...</div>;
+    if (!project || !manager ) {
+        return <>Loading....</>
     }
 
     return (
-        <div className='flex'>
-            <div className='flex-1 mt-4'>
-                <button
-                    onClick={() => setToggleAddTask(true)}
-                    className='bg-emerald-600 hover:bg-emerald-700 rounded-md text-white p-1'
-                >
-                    Add Task
-                </button>
-                <div className='block bg-gray-100 rounded-md shadow-lg w-5/6 p-4 my-4'>
-                    <p className='text-md p-2'>{projectDetails.description}</p>
-                </div>
+        <div className='md:ml-3 xl:ml-5 bg-gray-100 '>
+             <button 
+                onClick={() => window.location.href=`/projects`}
+                className='flex gap-2 text-xl font-medium p-4'
+            >
+                <BiArrowBack className='mt-1.5' size={20}/>
+                <h1>Projects</h1>
+            </button>
 
-                {tasksRef.current.length > 0 && tasksRef.current.map((task, id) => (
-                    <div
-                        key={id}
-                        className='block bg-gray-100 rounded-md shadow-lg w-5/6 p-4 my-8'
-                    >
-                        <div className='shadow-2xl py-2'>
-                            <div className='flex px-2'>
-                                {/* <img
-                                    src={task.CreatorProfileURL || defaultUserPhoto}
-                                    onError={(e) => e.currentTarget.src = defaultUserPhoto}
-                                    alt="creator"
-                                    className='rounded-full w-12 h-12'
-                                /> */}
-                                <h1 className='text-lg font-semibold mx-2 py-2'>{task.authorId}</h1>
-                            </div>
-
-                            <div className='block my-2'>
-                                <div
-                                    className='text-sm p-2'
-                                    dangerouslySetInnerHTML={{ __html: task.description }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className='p-2 bg-gray-200 rounded-md mt-4'>
-                            <div className='flex justify-between mt-4'>
-                                <div className='flex'>
-                                    
-                                    <h1 className='text-lg font-semibold mt-2 mx-2'>{task.authorId}</h1>
-                                </div>
-                            </div>
-                            <div className='text-sm p-2'>
-                                <div
-                                    className='text-sm p-2 formatted-text'
-                                    dangerouslySetInnerHTML={{ __html: task.description }}
-                                />
-                                {selectedTaskId === id ? (
-                                    <AddTaskResponse
-                                        onClose={() => setSelectedTaskId(null)}
-                                        onSubmit={() => handleSubmitResponseChange(task, id)}
-                                        value={taskResponse}
-                                        onChange={handleResponseUpdate}
-                                        data={task}
-                                    />
-                                ) : (
-                                    <span
-                                        onClick={() => setSelectedTaskId(id)}
-                                        className='text-sm hover:font-semibold cursor-pointer'
-                                    >
-                                        Add response...
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className='flex-shrink-0'>
-                {!toggleUserPannel && (
+            <div className="block bg-white">
+                <div className='flex justify-start w-full border-t border-b border-gray-300 font-medium text-emerald-800 rounded-md px-1 py-4 gap-4'>
                     <button
-                        onClick={() => setToggleUserPannel(true)}
-                        className='border-2 border-gray-700 rounded-md hover:bg-gray-700 hover:text-white font-semibold p-1 m-4'
+                        onClick={() => handleProjectSettingsDialog(!projectDetailsDialog)}
+                    >
+                        Details
+                    </button>
+                    
+                    <button
+                        onClick={() => handleMembersDialog(!membersDialog)}
                     >
                         Members
                     </button>
-                )}
-
-                <div className={`${toggleUserPannel && 'h-full bg-gray-100'}`}>
-                    <ProjectMembersPanel
-                        manager={manager}
-                        members={members}
-                        panelState={toggleUserPannel}
-                        onClose={() => setToggleUserPannel(false)}
-                    />
                 </div>
+            
+                {!membersDialog && 
+                    <div className="flex flex-col p-4 mr-4">
+                        <h1 className="font-semibold text-lg">{project.title}</h1>
+                        <p 
+                            dangerouslySetInnerHTML={{ __html: project.description}}
+                            className="font-mono px-2"
+                        ></p>
+
+                        <span className="flex flex-grow"></span>
+
+                        <div className="flex">
+                            <button
+                                onClick={() => handleEditDialog(!editDialog)} 
+                                className="text-green-600 font-semibold hover:bg-green-600 hover:rounded-md hover:text-white p-1 my-1"
+                            >
+                                <MdEdit size={20}/>
+                            </button>
+                            <button
+                                onClick={() => handleDeleteDialog(!deleteDialog)} 
+                                className="text-red-600 font-semibold hover:bg-red-600 hover:text-white hover:rounded-md p-1 my-1 mx-2"
+                            >
+                                <BiTrash size={20}/>
+                            </button>
+                        </div>
+                    </div>
+                }
             </div>
 
-            {toggleAddTask && (
-                <CreateTaskDialog
-                    onClose={() => setToggleAddTask(false)}
+            <div className="flex justify-end items-end text-end w-full gap-2 px-4 mb-2 mt-4">
+                <button
+                    onClick={handleInvitationLink} 
+                    className="flex bg-green-600 text-gray-50 hover:bg-green-700 hover:text-gray-200 rounded-md gap-2 p-2"
+                >
+                    <IoShareSocialOutline size={20} className='mt-0.5'/> <span>Invite</span>
+                </button>
+                <button
+                    onClick={() => handleTaskDialog(!taskDialog)} 
+                    className="bg-green-600 text-gray-50 hover:bg-green-700 hover:text-gray-200 rounded-md p-2"
+                >
+                    Add task
+                </button>
+            </div>
+
+            {projectDetailsDialog && <TasksContainer 
+                project={project!}
+                limit={10}
+                orderBy="createdAt"
+                orderDirection="asc"
+            /> }
+
+            {membersDialog && <ProjectMembersContainer 
+                members={members}
+                manager={manager}
+            />}
+
+            {taskDialog && 
+                <CreateTaskDialog 
+                    projectId={project.id}
+                    onClose={handleTaskDialog}
                     members={members}
-                    projectData={projectDetails}
-                    onTaskCreation={handleTaskCreation}
-                    id={params.id}
                 />
-            )}
+            }
+
+            {inviteDialog && 
+                <InviteUsersDialog 
+                    projectId={project.id} 
+                    projectTitle={project.title}
+                    onClose={handleInviteDialog} 
+                    existingUsers={[project.projectManagerId, ...project.memberIds]}
+                    invitationLink={inviteLink}
+                />
+            }
+
+            {editDialog &&
+                <EditProjectDialog 
+                    onClose={handleEditDialog} 
+                    project={project}
+                    manager={manager}
+                    members={members}
+                />
+            }
+
+            {deleteDialog &&
+                <DeleteDialog 
+                    onClose={handleDeleteDialog}
+                    id={project.id}
+                    type="project"
+                />
+            }
         </div>
-    );
-};
+    )
+}

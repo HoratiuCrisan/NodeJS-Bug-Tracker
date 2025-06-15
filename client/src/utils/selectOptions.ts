@@ -57,7 +57,9 @@ export const displayTicketOptions = [
 export const ticketsSortOptions = [
   {label: "Title", value: "title"},
   {label: "Deadline", value: "deadline"},
-  {label: "Priority", value: "priority"}
+  {label: "Priority", value: "priority"},
+  {label: "Created at", value: "createdAt"},
+  {label: "Status", value: "status"},
 ];
 
 export const statusUpdateMenu = [

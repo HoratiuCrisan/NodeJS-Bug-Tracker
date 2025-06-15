@@ -55,8 +55,28 @@ func (r *taskRepository) CreateTask(ctx context.Context, task model.Task) (model
 //   - model.Subtask: The created subtask data
 //   - error: An error that occured during the process
 func (r *taskRepository) CreateSubtask(ctx context.Context, taskId string, subtask model.Subtask) (model.Subtask, error) {
-	// Add the subtask object into the subtasks collection based on the ID of the subtask object
-	_, err := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtask.ID).Create(ctx, subtask)
+	// Run a transaction before creating the subtask in order to prevent task updating errors
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Get the parent task reference
+		taskRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
+
+		// Get the subtask parent reference
+		subtaskRef := taskRef.Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtask.ID)
+
+		// Create the subtask
+		if err := tx.Create(subtaskRef, subtask); err != nil {
+			return fmt.Errorf("failed to create subtask: %w", err)
+		}
+
+		// Increment the subtaskCount in the parent task
+		if err := tx.Update(taskRef, []firestore.Update{
+			{Path: "subtaskCount", Value: firestore.Increment(1)},
+		}); err != nil {
+			return fmt.Errorf("failed to increment subtask counter: %w", err)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return model.Subtask{}, err
 	}
@@ -75,8 +95,28 @@ func (r *taskRepository) CreateSubtask(ctx context.Context, taskId string, subta
 //   - model.Response: The created resopnse data
 //   - error: An error that occured during the process
 func (r *taskRepository) CreateTaskResponse(ctx context.Context, taskId string, response model.Response) (model.Response, error) {
-	// Add the reponse object into the response collection using the ID of the reponse object
-	_, err := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(response.ID).Create(ctx, response)
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Get parent task reference
+		taskRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
+
+		// Get subcollection doc reference for response
+		responseRef := taskRef.Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(response.ID)
+
+		// Create response in subcollection
+		if err := tx.Create(responseRef, response); err != nil {
+			return fmt.Errorf("failed to create response: %w", err)
+		}
+
+		// Increment response count on the parent task document
+		if err := tx.Update(taskRef, []firestore.Update{
+			{Path: "responseCount", Value: firestore.Increment(1)},
+		}); err != nil {
+			return fmt.Errorf("failed to increment responseCount on task: %w", err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return model.Response{}, err
 	}
@@ -97,7 +137,7 @@ func (r *taskRepository) CreateTaskResponse(ctx context.Context, taskId string, 
 // Returns:
 //   - []model.Task: The list of retrieved tasks
 //   - error: An error that occured during the process
-func (r *taskRepository) GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter *string) ([]model.Task, error) {
+func (r *taskRepository) GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter string) ([]model.Task, error) {
 	// Get the tasks that are part of the project
 	query := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Where("projectId", "==", projectId)
 
@@ -108,15 +148,13 @@ func (r *taskRepository) GetTasks(ctx context.Context, projectId string, limit i
 		query = query.OrderBy(orderBy, firestore.Desc)
 	}
 
-	// Check if the ID of the last task was sent as a parameter
-	if startAfter != nil && *startAfter != "" {
-		// Get the snapshot of the last task retrieved
-		lastDocSnapshot, err := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(*startAfter).Get(ctx)
+	//Check if the ID of the last task was sent as a parameter
+	if startAfter != "" && len(startAfter) == 0 && startAfter != "null" {
+		lastDocSnapshot, err := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(startAfter).Get(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		// Start after that task
 		query = query.StartAfter(lastDocSnapshot.Data()[orderBy])
 	}
 
@@ -598,37 +636,64 @@ func (r *taskRepository) UpdateSubtaskHandler(ctx context.Context, taskId string
 //   - model.Subtask: The updated subtask data
 //   - error: An error that occured during the process
 func (r *taskRepository) UpdateSubtaskStatus(ctx context.Context, taskId string, subtaskId string, subtaskStatus bool) (model.Subtask, error) {
+	// Get the task document reference
+	taskRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
+
 	// Get the subtask document reference
-	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
+	subtaskRef := taskRef.Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
 
-	// Get the document snapshot
-	docSnapshot, err := docRef.Get(ctx)
+	var updatedSubtask model.Subtask
 
-	// Check if the document exists
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return model.Subtask{}, fmt.Errorf("subtask with the ID %s for the task with the ID %s not found", subtaskId, taskId)
+	// Run a transaction to avoid race conditions
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Get the subtask snapshot
+		subtaskSnapshot, err := tx.Get(subtaskRef)
+		if err != nil {
+			if status.Code(err) == codes.NotFound {
+				return fmt.Errorf("subtask with the ID %s for the task with the ID %s not found", subtaskId, taskId)
+			}
+			return err
 		}
-		return model.Subtask{}, err
-	}
 
-	// Add the snapshot data to the subtask object
-	var subtask model.Subtask
-	err = docSnapshot.DataTo(&subtask)
+		// Parse existing subtask data
+		var subtask model.Subtask
+		if err := subtaskSnapshot.DataTo(&subtask); err != nil {
+			return err
+		}
+
+		// Only increment/decrement the counter if the value has actually changed
+		if subtask.Done != subtaskStatus {
+			counterDelta := int64(1)
+			if !subtaskStatus {
+				counterDelta = -1
+			}
+
+			// Update the parent task's completedSubtaskCount
+			if err := tx.Update(taskRef, []firestore.Update{
+				{Path: "completedSubtaskCount", Value: firestore.Increment(counterDelta)},
+			}); err != nil {
+				return fmt.Errorf("failed to update completedSubtaskCount in parent task: %w", err)
+			}
+		}
+
+		// Update the subtask `done` status
+		if err := tx.Update(subtaskRef, []firestore.Update{
+			{Path: "done", Value: subtaskStatus},
+		}); err != nil {
+			return fmt.Errorf("failed to update subtask status: %w", err)
+		}
+
+		// Return the updated subtask
+		subtask.Done = subtaskStatus
+		updatedSubtask = subtask
+
+		return nil
+	})
 	if err != nil {
 		return model.Subtask{}, err
 	}
 
-	// Update the subtask status
-	subtask.Done = subtaskStatus
-
-	// Update the subtask data into the databse
-	_, err = docRef.Set(ctx, subtask)
-	if err != nil {
-		return model.Subtask{}, err
-	}
-
-	return subtask, nil
+	return updatedSubtask, nil
 }
 
 // UpdateResponseMessage retrieves the data from the service layer and updates the text message of a task response
@@ -643,7 +708,7 @@ func (r *taskRepository) UpdateSubtaskStatus(ctx context.Context, taskId string,
 //   - error: An error that occured during the process
 func (r *taskRepository) UpdateResponseMessage(ctx context.Context, taskId string, responseId, message string) (model.Response, error) {
 	// Get the response document reference
-	docRef := r.client.Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(responseId)
+	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(responseId)
 
 	// Get the document snapshot
 	docSnapshot, err := docRef.Get(ctx)
@@ -789,30 +854,55 @@ func (r *taskRepository) DeleteTaskById(ctx context.Context, taskId string) (mod
 //   - model.Subtask: The data of the deleted subtask
 //   - error: An error that occured during the process
 func (r *taskRepository) DeleteSubtaskById(ctx context.Context, taskId string, subtaskId string) (model.Subtask, error) {
+	// Get the task reference
+	taskRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
 	// Get the subtask document reference
-	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
+	subtaskRef := taskRef.Collection(utils.EnvInstances.TASKS_SUBCOLLECTION).Doc(subtaskId)
 
-	// Get the document snapshot
-	docSnapshot, err := docRef.Get(ctx)
+	var deletedSubtask model.Subtask
 
-	// Check if the document exists
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return model.Subtask{}, fmt.Errorf("subticket with ID %s for the ticket with ID %s not found", subtaskId, taskId)
+	// Run a transaction to avoid errors while updating the parent task
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		// Get the subtask snapshot
+		subtaskSnapshot, err := tx.Get(subtaskRef)
+		if err != nil {
+			// Check if the subtask was not found
+			if status.Code(err) == codes.NotFound {
+				return fmt.Errorf("subtask with ID %s not found", subtaskId)
+			}
+
+			return err
 		}
+
+		// Add the subtask data to the variable in order to return it
+		if err := subtaskSnapshot.DataTo(&deletedSubtask); err != nil {
+			return err
+		}
+
+		// Delete the subtask
+		tx.Delete(subtaskRef)
+
+		// Decrement subtask counter
+		updates := []firestore.Update{
+			{Path: "subtaskCount", Value: firestore.Increment(-1)},
+		}
+
+		// If the subtask is complete, decrement the complete subtasks counter
+		if deletedSubtask.Done == true {
+			updates = append(updates, firestore.Update{
+				Path:  "completedSubtaskCount",
+				Value: firestore.Increment(-1),
+			})
+		}
+
+		// Apply the counter updates on the parent task
+		return tx.Update(taskRef, updates)
+	})
+	if err != nil {
 		return model.Subtask{}, err
 	}
 
-	// Add the snapshot data to the subtask object
-	var subtask model.Subtask
-	if err = docSnapshot.DataTo(&subtask); err != nil {
-		return model.Subtask{}, err
-	}
-
-	// Delete the subtask
-	docRef.Delete(ctx)
-
-	return subtask, nil
+	return deletedSubtask, nil
 }
 
 // DeleteResopnseById retrieves the data from the service layer and deletes the task resposne
@@ -826,31 +916,45 @@ func (r *taskRepository) DeleteSubtaskById(ctx context.Context, taskId string, s
 //   - model.Response: The data of the deleted response
 //   - error: An error that occured during the process
 func (r *taskRepository) DeleteResponseById(ctx context.Context, taskId, responseId string) (model.Response, error) {
+	// Get the task reference
+	taskRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId)
 	// Get the response document reference
-	docRef := r.client.Collection(utils.EnvInstances.TASKS_COLLECTION).Doc(taskId).Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(responseId)
+	responseRef := taskRef.Collection(utils.EnvInstances.RESPONSES_COLLECTION).Doc(responseId)
 
-	// Get the document snapshot
-	docSnapshot, err := docRef.Get(ctx)
+	var deletedResponse model.Response
 
-	// Check if the document exists
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return model.Response{}, fmt.Errorf("response with ID %s not found", responseId)
+	// Run a transaction to avoid update errors in the parent task
+	err := r.client.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
+		reponseSnapshot, err := tx.Get(responseRef)
+		if err != nil {
+			// Check if the response was not found
+			if status.Code(err) == codes.NotFound {
+				return fmt.Errorf("response with ID %s not found", responseId)
+			}
+			return err
 		}
 
+		// Add the data of the resposne to the variable to return it
+		if err := reponseSnapshot.DataTo(&deletedResponse); err != nil {
+			return err
+		}
+
+		// Delte the response
+		tx.Delete(responseRef)
+
+		// Decremetn the task resposne counter
+		updates := []firestore.Update{
+			{Path: "responseCount", Value: firestore.Increment(-1)},
+		}
+
+		// Apply the counter updates to the parent task
+		return tx.Update(taskRef, updates)
+	})
+	if err != nil {
 		return model.Response{}, err
 	}
 
-	// Add the snapshot data to the response object
-	var response model.Response
-	if err = docSnapshot.DataTo(&response); err != nil {
-		return model.Response{}, err
-	}
-
-	// Delete the reponse
-	docRef.Delete(ctx)
-
-	return response, nil
+	return deletedResponse, nil
 }
 
 // DeleteTaskSubcollections retrieves the data from the service layer

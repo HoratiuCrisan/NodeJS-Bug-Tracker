@@ -9,6 +9,14 @@ const router = Router();
 /* GET requests */
 
 router.get(
+    "/unread",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    NotificationController.getUnreadNotifications,
+);
+
+router.get(
     "/:notificationId",
     verifyToken,
     checkRequestError,

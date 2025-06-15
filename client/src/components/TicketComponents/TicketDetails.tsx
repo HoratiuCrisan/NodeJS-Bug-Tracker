@@ -15,6 +15,9 @@ import {statusUpdateMenu} from "../../utils/selectOptions";
 import { useCan } from '../../hooks/useCan';
 import { User } from '../../types/User';
 import { TicketResponse } from './TicketResponse';
+import dayjs from 'dayjs';
+import { AssignTicketDialog } from './AssignTicketDialog';
+import defaultPhoto from "../../Images/default-user-photo.svg";
 
 export const TicketDetails = () => {
     const {loading, user} = useContext(UserContext);
@@ -25,15 +28,18 @@ export const TicketDetails = () => {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
     const [isVersionOpen, setIsVersionOpen] = useState<boolean>(false);
+    const [isAssignOpen, setIsAssignOpen] = useState<boolean>(false);
     const canUpdateStatus = useCan("updateTicketStatus", ticketCard?.ticket);
     const canEditTicket = useCan("editTicket", ticketCard?.ticket);
     const canDeleteTicket = useCan("deleteTicket", ticketCard?.ticket);
+    const canAssignTicket = useCan("assignTicket");
 
     const ticketsMenu = [
-        {text: "Deadline", value: new Date(Number(ticketCard?.ticket.deadline)).toLocaleString(), style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
+        {text: "Created at", value: dayjs(ticketCard?.ticket.createdAt).format("DD/MM/YY hh:mm A"), style: 'text-teal-700 border-teal-700 hover:bg-teal-700 hover:text-white'},
+        {text: "Deadline", value: dayjs(ticketCard?.ticket.deadline).format("DD/MM/YY hh:mm A"), style: 'text-green-600 border-green-600 hover:bg-green-600 hover:text-white'},
         {text: "Type", value: ticketCard?.ticket.type, style: 'text-yellow-600 border-yellow-600 hover:bg-yellow-600 hover:text-white'},
         {text: "Priority", value: ticketCard?.ticket.priority, style: 'text-red-600 border-red-600 hover:bg-red-600 hover:text-white'},
-        {text: "Status", value: ticketCard?.ticket.status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'}
+        {text: "Status", value: ticketCard?.ticket.status, style: 'text-blue-600 border-blue-600 hover:bg-blue-600 hover:text-white'},
     ];
     
     useEffect(() => {   
@@ -69,6 +75,10 @@ export const TicketDetails = () => {
         setIsVersionOpen(value);
     }
 
+    const handleIsAssignOpen = (value: boolean) => {
+        setIsAssignOpen(value);
+    }
+
   
     if (loading || !user || !ticketId || !ticketCard) {
         return <div>Loading...</div>
@@ -95,6 +105,18 @@ export const TicketDetails = () => {
                     </div>
 
                     <div className='flex'>    
+                            {canAssignTicket &&
+                                <button
+                                    onClick={() => handleIsAssignOpen(!isAssignOpen)}
+                                    className={
+                                        `my-4 rounded-md border-2 border-yellow-600 font-semibold
+                                        text-yellow-600 hover:text-white hover:bg-yellow-600 px-2 mx-1`
+                                    }
+                                >
+                                    Asssign ticket
+                                </button>
+                            }
+
                         {canUpdateStatus &&
                             <button
                                 onClick={() => setIsStatusUpdateOpen(!isStatusUpdateOpen)} 
@@ -152,9 +174,34 @@ export const TicketDetails = () => {
             </div>
 
             <div className='block w-full lg:w-3/4'>
-                <TicketResponse 
-                    ticket={ticketCard.ticket}
-                />
+                {ticketCard.handler && user.id !== ticketCard.handler.id && 
+                    <div className="w-full lg:w-3/4 bg-gray-50 rounded-md shadow-md p-2 mb-4">
+                        <div className='flex flex-col w-full mx-auto justify-center items-center'>
+                            <img 
+                                src={ticketCard.handler.photoUrl ?? defaultPhoto} 
+                                onError={(e) => e.currentTarget.src=`${defaultPhoto}`}
+                                alt="handler profile" 
+                                className="rounded-full w-14 h-14"
+                            />
+                            <h1 className="font-medium text-slate-600">
+                                {ticketCard.handler.displayName}
+                            </h1>
+                            <a 
+                                href={`https://mail.google.com/mail/?view=cm&to=${ticketCard.handler.email}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline hover:text-blue-800 font-mono"
+                            >
+                                {ticketCard.handler.email}
+                            </a>
+                        </div>
+                    </div>
+                }
+                {(canUpdateStatus || ticketCard.ticket.response) &&
+                    <TicketResponse 
+                        ticket={ticketCard.ticket}
+                    />
+                }
     
                 <FilesUpload 
                     ticketId={ticketId}
@@ -215,6 +262,11 @@ export const TicketDetails = () => {
                     isOpen={isVersionOpen}
                     ticketId={ticketCard.ticket.id} 
                 />
+            }
+
+            {
+                isAssignOpen &&
+                <AssignTicketDialog onClose={handleIsAssignOpen} ticket={ticketCard.ticket}/>
             }
         </div>
     );

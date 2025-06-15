@@ -60,7 +60,7 @@ export class RabbitMqConsumer {
                     const log: LogMessage = JSON.parse(msg.content.toString());
                     
                     /* Send the log to the service layer to create a new log message */
-                    await this._logService.createLog(log);
+                    //await this._logService.createLog(log);
 
                     this._channel?.ack(msg);
                 } catch (error) {

@@ -1,4 +1,4 @@
-import admin from "../../config/firebase";
+import admin from "../config/firebase";
 import { Message, Conversation } from "../types/Conversation";
 import { executeWithHandling, AppError } from "@bug-tracker/usermiddleware";
 import env from "dotenv";
@@ -82,7 +82,7 @@ export class ChatRepository {
                 const conversationsRef = db.collection(this.dbConversationCollection);
 
                 /* Get all the conversation in which the user is part of */
-                const conversationsSnapshot = await conversationsRef.where("members", "array-contains", userId).get();
+                const conversationsSnapshot = await conversationsRef.where("members", "array-contains", userId).orderBy("lastMessageTimestamp", "desc").get();
 
                 const conversations: Conversation[] = [];
                 
@@ -125,6 +125,34 @@ export class ChatRepository {
             `GetConversationError`,
             500,
             `Failed to retrieve conversation`
+        );
+    }
+
+    async checkConversation(userId1: string, userId2: string): Promise<Conversation | null> {
+        return executeWithHandling(
+            async () => {
+                const conversationRef = db.collection(this.dbConversationCollection).where("members", "array-contains", userId1);
+
+                const conversationSnapshot = await conversationRef.get();
+
+                if (conversationSnapshot.empty) {
+                    return null;
+                }
+
+                const conersation = conversationSnapshot.docs.find(doc => {
+                    const data = doc.data() as Conversation;
+                    const members = data.members || [];
+
+                    return members.includes(userId2) && members.length === 2;
+                });
+
+                if (!conersation) return null;
+
+                return conersation.data() as Conversation;
+            },
+            `FailedToCheckConversation`,
+            500,
+            `Failed to check if direct conversation exists`
         );
     }
 
@@ -175,7 +203,7 @@ export class ChatRepository {
                 });
 
                 /* Return the list of messages */
-                return messages;
+                return messages.reverse();
             },
             `GetMessagesError`,
             500,
@@ -317,7 +345,8 @@ export class ChatRepository {
 
                 /* Update the last message property of the conversation */
                 await conversationRef.update({
-                    lastMessage: message
+                    lastMessage: message,
+                    lastMessageTimestamp: Date.now(),
                 });
 
                 /* Return the updated conversation */
@@ -361,10 +390,15 @@ export class ChatRepository {
                         userId,
                         timestamp,
                     }),
+                    unreadBy: [],
                 });
 
                 /* Return the updated message data */
-                return (await messageRef.get()).data() as Message;
+                const viewed = (await messageRef.get()).data() as Message;
+
+                console.log("viewed: ", viewed);
+
+                return viewed;
             },
             `UpdateMessageError`,
             500,

@@ -1,8 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import { UserContainer } from '../components/UserComponents/UserContainer';
-import Select, { SingleValue } from 'react-select';
-import convertTimestampToDate from '../utils/TimestampToDate';
-import { selectStyles, customStyles } from '../utils/Select-Styles';
 
 
 export const Users = () => {

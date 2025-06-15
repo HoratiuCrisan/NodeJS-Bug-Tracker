@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,18 +37,21 @@ func (s *taskService) CreateTask(ctx context.Context, authorId string, projectId
 	taskId := uuid.NewString()
 
 	// Get the current time of the task creation
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	taskData := model.Task{
-		ID:          taskId,
-		AuthorID:    authorId,
-		ProjectID:   projectId,
-		HandlerIDs:  handlerIds,
-		Description: description,
-		Deadline:    deadline,
-		CreatedAt:   now,
-		CompletedAt: nil,
-		Status:      "new",
+		ID:                    taskId,
+		AuthorID:              authorId,
+		ProjectID:             projectId,
+		HandlerIDs:            handlerIds,
+		Description:           description,
+		Deadline:              deadline,
+		CreatedAt:             now,
+		CompletedAt:           nil,
+		Status:                "new",
+		CompletedSubtaskCount: 0,
+		SubtaskCount:          0,
+		ResponseCount:         0,
 	}
 
 	// Send the data to the service layer to create the task
@@ -81,7 +85,7 @@ func (s *taskService) CreateSubtask(ctx context.Context, authorId string, taskId
 	subtaskId := uuid.NewString()
 
 	// Get the current creation timestamp
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	// Create the subtask object
 	subtaskData := model.Subtask{
@@ -122,7 +126,7 @@ func (s *taskService) CreateTaskResponse(ctx context.Context, authorId string, t
 	responseId := uuid.NewString()
 
 	// Get the current timestamp
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	// Generate the response object
 	responseData := model.Response{
@@ -156,7 +160,7 @@ func (s *taskService) CreateTaskResponse(ctx context.Context, authorId string, t
 // Returns:
 //   - []model.Task: The list of retrieved tasks
 //   - error: An error that occured during the process
-func (s *taskService) GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter *string) ([]model.Task, error) {
+func (s *taskService) GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter string) ([]model.Task, error) {
 	// Send the data to the repository layer to retrieve the tasks list
 	tasks, err := s.taskRepository.GetTasks(ctx, projectId, limit, orderBy, orderDirection, startAfter)
 	if err != nil {
@@ -179,6 +183,7 @@ func (s *taskService) GetSubtasks(ctx context.Context, taskId string) ([]model.S
 	// Send the data to the repository layer to retrieve the subtasks list
 	subtasks, err := s.taskRepository.GetSubtasks(ctx, taskId)
 	if err != nil {
+		fmt.Printf("%+v", err)
 		return nil, err
 	}
 
@@ -394,6 +399,7 @@ func (s *taskService) UpdateSubtaskStatus(ctx context.Context, taskId string, su
 	// Send the data to the repository layer to update the subtask status
 	subtask, err := s.taskRepository.UpdateSubtaskStatus(ctx, taskId, subtaskId, status)
 	if err != nil {
+		fmt.Printf("error: %+v", err)
 		return model.Subtask{}, err
 	}
 
@@ -416,6 +422,7 @@ func (s *taskService) UpdateResponseMessage(ctx context.Context, taskId string, 
 	// Send the data to the repository layer to update the text message of the response
 	response, err := s.taskRepository.UpdateResponseMessage(ctx, taskId, responseId, message)
 	if err != nil {
+		fmt.Printf("%+v", err)
 		return model.Response{}, err
 	}
 

@@ -1,244 +1,107 @@
-import React, {useState, useEffect, useRef} from 'react'
-import { IoCloseOutline } from 'react-icons/io5'
-import { TextEditor } from '../TextEditor'
-import Select, { MultiValue } from 'react-select'
-import { Project } from '../../types/Project'
-import { User } from '../../types/User'
-import { Task } from '../../types/Tasks'
-import { useAuth } from '../../config/AuthContext'
-import { DatePicker } from '../DatePicker'
-import { updateProject } from '../../api/projects'
-import { ErrorDialog } from '../ErrorDialog'
+import React, {useState, useEffect} from 'react';
+import { User } from '../../types/User';
+import { Task } from '../../types/Tasks';
+import { IoCloseOutline } from 'react-icons/io5';
+import { TextEditor } from '../TextEditor';
+import Select, { MultiValue } from "react-select";
+import { DatePicker } from '../DatePicker';
+import { createTask } from '../../api/tasks';
 
-interface Props {
-  onClose: () => void
-  members: User[]
-  projectData: Project
-  id: string | undefined
-  onTaskCreation: (newTask: Task) => void
+type CreateTaskDialogType = {
+    projectId: string;
+    members: User[];
+    onClose: (value: boolean) => void;
 }
 
+export const CreateTaskDialog: React.FC<CreateTaskDialogType> = ({projectId, members, onClose}) => {
+    const [description, setDescription] = useState<string>("");
+    const [handlerIds, setHandlerIds] = useState<string[]>([]);
+    const [deadline, setDeadline] = useState<number>(Date.now());
+    const [handlerOptions, setHandlerOptions] = useState<{label: string, value: string}[]>([]);
 
-export const CreateTaskDialog: React.FC<Props> = ({onClose, members, projectData, id, onTaskCreation}) => {
-  const {currentUser} = useAuth()
-  const [error, setError] = useState<string | null>(null)
-  const [taskDescription, setTaskDescription] = useState<string>('')
-  const [taskTitle, setTaskTitle] = useState<string>('')
-  const [membersOptions, setMembersOptions] = useState<{label: string, value: string}[]>([])
-  const [selectedMember, setSelectedMember] = useState<{ label: string, value: string }>()
-  const [taskDeadline, setTaskDeadline] = useState<string>('')
-  const formData = useRef<Project>({
-    id: projectData.id,
-    title: projectData.title,
-    description: projectData.description,
-    createdAt: projectData.createdAt,
-    projectManagerId: projectData.projectManagerId,
-    memberIds: projectData.memberIds,
-    code: projectData.code
-  })
+    useEffect(() => {
+        setHandlerOptions(members.map((member) => {return {label: member.email, value: member.id}}));
+    }, [projectId, members]);
 
-  useEffect(() => {
-    if (members.length > 0) {
-      const usersOptions = members.map((member) => ({
-        label: member.displayName,
-        value: member.displayName
-      }))
+    const handleDescription = (value: string | undefined) => {
+        if (!value) return;
 
-      setMembersOptions(usersOptions)
-    }
-  }, [members])
-
-  const handleSelectedMember = (selectedOption: { label: string, value: string } | null) => {
-    setError(null)
-
-    if (!selectedOption) {
-        setError("Error! The member selected does not exist!")
-        return
+        setDescription(value);
     }
 
-    const user = members.find((usr) => usr.displayName === selectedOption.value)
+    const handleHandlerIds = (options: MultiValue<{label: string, value: string}>) => {
+        if (options.length === 0) return;
 
-    if (!user) {
-      setError("Error! The member selected does not exist")
-      return
+        setHandlerIds(options.map((option) => option.value));
     }
 
-    setSelectedMember(selectedOption)
-}
+    const handleDeadline = (value: number) => {
+        setDeadline(value);
+    }
 
-const handleDateChange = (value: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string | number | undefined) => {
-  setError(null)
+    const handleCreateTask = async (projectId: string, description: string, handlers: string[], deadline: number) => {
+        console.log(projectId, description, handlerIds, deadline);
+        try {
+            const response = await createTask(projectId, handlers, description, deadline);
 
-  if (value === undefined) {
-    setError("Error! Please select a real date!")
-    return
-  }
+            console.log(response);
+        } catch (error) {
+            console.error(error);
+            return error;
+        }
+    }
 
-  setTaskDeadline(value.toString())
-}
-
- 
-
-const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  setError(null);
-
-  // Validation checks
-  if (taskTitle.length < 0) {
-      setError("Error! Please enter a title longer than 10 characters!");
-      return;
-  }
-
-  if (taskDescription.length < 10) {
-      setError("Error! Please enter a description longer than 20 characters!");
-      return;
-  }
-
-  if (!selectedMember) {
-      setError("Error! Please select a user to handle the task!");
-      return;
-  }
-
-  if (!taskDeadline) {
-      setError("Error! Please select a deadline for the task!");
-      return;
-  }
-
-  if (currentUser === null) {
-      setError("Error! Unauthorized user!");
-      return;
-  }
-
-  const currentUsr = currentUser.displayName ? currentUser.displayName : '';
-
-  const handler = members.find(member => member.displayName === selectedMember.value)
-
-
-
-  // Create the new task
-  const newTask: Task = {
-      id: '',
-      projectId: '',
-      description: taskDescription,
-      createdAt: Date.now(),
-      deadline: Date.now(),
-      status: 'new',
-      authorId: currentUser.uid,
-      handlerIds: [selectedMember.value],
-      completedAt: null,
-  };
-  
-
-  const response = await updateProject(formData.current, id)
-
-  console.log(response)
-
-  if (!response) {
-    setError("Error! Project could not be updated!")
-    return
-  }
-
-  onTaskCreation(newTask)
-
-  onClose()
-}
-
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 mt-10">
-      <div className="bg-gray-50 p-4 rounded-lg shadow-lg w-2/6">
-          <div className='block justify-center mx-auto w-full bg-gray-50'>
-              <div className='flex w-full justify-end items-end text-end'>
-                  <IoCloseOutline 
-                      onClick={onClose}
-                      className='bg-gray-200 rounded-full hover:bg-red-500 hover:text-white cursor-pointer'
-                      size={24}
-                  />
-              </div>
-
-              <h1 className='text-lg font-bold mx-auto text-center'>
-                Create Task
-              </h1>
-
-              <form
-                onSubmit={handleSubmit}
-              >
-                <label
-                    htmlFor="task-title"
-                    className="text-lg font-mono font-semibold"
-                >
-                    Title
-                    <input
-                        type="text"
-                        name="task-title"
-                        id="task-title"
-                        autoComplete="off"
-                        required
-                        value={taskTitle}
-                        onChange={(e) => setTaskTitle(e.target.value)}
-                        className="block border-gray-300 font-medium text-sm w-full border-2 rounded-md my-4 py-2 pl-2"
-                    />
-                </label>
-
-                <label
-                    htmlFor="task-description"
-                    className="text-lg font-mono my-10"
-                >
-                    <span className='font-semibold'>Description</span>
-                    <div className=''>
-                      <TextEditor 
-                        value={taskDescription}
-                        onChange={setTaskDescription}
-                        readonly={false}
-                      />
+    return (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+            <div className="w-4/5 md:w-3/5 lg:w-3/6 bg-gray-50 p-4 rounded-lg shadow-lg">
+                <div className="block justify-center mx-auto w-full bg-gray-50">
+                    <div className="flex w-full justify-end items-end text-end">
+                        <IoCloseOutline
+                            onClick={() => onClose(false)}
+                            className='bg-gray-200 rounded-full hover:bg-red-500 hover:text-white cursor-pointer'
+                            size={24}
+                        />
                     </div>
-                </label>
 
-                <div className='my-4'>
-                  <label
-                      htmlFor="task-members"
-                      className="text-lg font-mono font-semibold my-10"
-                  >
-                      Assign to:
-                    <Select 
-                        options={membersOptions}
-                        className='text-md font-sans my-2'
-                        value={selectedMember}
-                        onChange={handleSelectedMember}
+                    <h1 className="font-medium text-lg my-2">Task description</h1>
+                    <TextEditor 
+                        value={description}
+                        onChange={handleDescription}
+                        readonly={false}
+                        classname={`my-4`}
                     />
-                  </label>
+
+                    <h1 className="font-medium text-lg my-2">Select task handlers</h1>
+                    <Select 
+                        isMulti={true}
+                        options={handlerOptions}
+                        onChange={handleHandlerIds}
+                    />
+
+                    <h1 className="font-semibold text-lg mt-4">Task deadline</h1>
+                    <DatePicker 
+                        value={deadline}
+                        onInputChange={handleDeadline}
+                        style="block w-full text-sm md:w-1/3 xl:w-2/5 2xl:w-1/6 border-2 border-gray-300 focus:border-gray-800 rounded-md p-2 mb-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline my-2"
+                    />
+
+                    <div className="flex justify-end items-end text-end font-semibold mt-8 mb-2 gap-2">
+                        <button
+                            onClick={() => onClose(false)} 
+                            className="bg-red-500 hover:bg-red-600 text-white hover:text-gray-300 rounded-md p-2"
+                        >
+                            Cancel
+                        </button>
+                        
+                        <button 
+                            onClick={() => {handleCreateTask(projectId, description, handlerIds, deadline); onClose(false)}}
+                            className="bg-green-500 hover:bg-green-600 text-white hover:text-gray-300 rounded-md p-2"
+                        >
+                            Create
+                        </button>
+                    </div>
                 </div>
-
-                <label 
-                    htmlFor="ticket-deadline"
-                    className="text-lg font-mono font-semibold"
-                >
-                    Deadline
-                    {/* <DatePicker 
-                        deadline={taskDeadline}
-                        onInputChange={handleDateChange}
-                        style={"block w-full text-sm md:w-1/3 border-2 border-gray-300 focus:border-gray-800 rounded-md p-2 mb-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"}
-                    /> */}
-                </label>
-
-                <button
-                type="submit"
-                className='w-full rounded-md bg-emerald-600 hover:bg-emerald-900 text-white my-6 p-2'
-              >
-                Submit Task
-              </button>
-              </form>
-
-          </div>
-      </div>
-
-      {
-        error &&
-        <ErrorDialog 
-          text={error}
-          onClose={() => setError(null)}
-        />
-      }
-  </div>
-  )
+            </div>
+        </div>
+    )
 }

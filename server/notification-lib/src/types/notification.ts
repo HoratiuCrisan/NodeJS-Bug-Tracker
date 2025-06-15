@@ -1,6 +1,6 @@
 export type Notification = {
     id: string;
-    email?: string;
+    email: string | null;
     timestamp: number;
     type: string;
     message: string;
@@ -8,6 +8,7 @@ export type Notification = {
     readAt: null | number;
     data?: unknown;
     sentEmail: boolean;
+    channel: "tickets" | "tasks" | "projects" | "messages";
 }
 
 export type NotificationMessage = {
@@ -15,5 +16,6 @@ export type NotificationMessage = {
     email?: string;
     message: string;
     type: string;
+    channel: "tickets" | "tasks" | "projects" | "messages";
     data?: unknown;
 }

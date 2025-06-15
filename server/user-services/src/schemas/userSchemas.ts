@@ -5,7 +5,7 @@ export const createUserSchema = Joi.object({
         "any.required": `"User ID" is required to perform the operation`,
         "string.empty": `"User ID" cannot be an empty string`,
     }),
-    displayName: Joi.string().min(5).required().messages({
+    displayName: Joi.string().min(1).required().messages({
         "any.required": `"Display name" is required to perform the operation`,
         "string.empty": `"Display name" cannot be an empty string`,
         "string.min": `"Display name" must be at least 5 characters long`
@@ -50,9 +50,13 @@ export const getUsersDataSchema = Joi.object({
         "any.required": `"User ID" is required to perform the operation`,
         "string.empty": `"User ID" cannot be an empty string`,
     }),
-    userIds: Joi.array().items(Joi.string()).min(1).required().messages({
-        "any.required": `"User IDs" is required to perform the operation`,
-        "array.min": `"User IDs" should have at least 1 item`,
+    userIds: Joi.any(),
+});
+
+export const getNonUsersSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
     }),
 })
 

@@ -98,6 +98,7 @@ export const TicketContainer = () => {
 
 	return (
 		<TicketForm
+			value={formData.deadline}
 			formData={formData}
 			formError={formError}
 			priority={ticketPriorityOptions}

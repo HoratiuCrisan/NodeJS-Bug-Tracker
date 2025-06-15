@@ -3,6 +3,7 @@ export type Conversation = {
     members: string[],
     createdAt: number,
     lastMessage: null | string,
+    lastMessageTimestamp: null | number;
 }
 
 export type GroupConversation = {
@@ -14,12 +15,13 @@ export type GroupConversation = {
     admin: string,
     photoUrl: string,
     lastMessage: null | string,
+    lastMessageTimestamp: null | number,
 }
 
 export type Message = {
     id: string,
     timestamp: number,
-    author: string,
+    authorId: string,
     conversation: string,
     status: string,
     edited: boolean,

@@ -105,7 +105,7 @@ export class LogRepository {
                     const logsSnapshot = await logsRef.doc(startAfter).get();
                     
                     /* If the log document exists, start the fetching process after it */
-                    if (!logsSnapshot.exists) {
+                    if (logsSnapshot.exists) {
                         orderedLogs = orderedLogs.startAfter(logsSnapshot);
                     }
                 }

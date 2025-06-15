@@ -127,6 +127,7 @@ const getUserTicketById = async (userId: string, ticketId: string): Promise<Tick
  * @returns {Promise<Ticket>} The updated ticket data
  */
 const updateTicketById = async(ticketId: string, data: Ticket): Promise<Ticket> => {
+    console.log(data);
     /* Send the request to the server */
     const response = await axios.put(`/${ticketId}`, {data});
     

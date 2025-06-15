@@ -34,7 +34,7 @@ export const TicketCard: React.FC<TicketProps> = ({ticket}) => {
           {parsePriorityColor(ticket.priority)}
         </span>
         <h1 className='my-2 text-gray-600'>
-          {ticket.deadline}
+          {new Date(ticket.deadline).toLocaleDateString()}
         </h1>
         <div className='flex items-center'>
           <h1 className='my-2'>{ticket.status.split('-').join(' ')}</h1>

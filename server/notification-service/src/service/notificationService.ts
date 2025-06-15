@@ -4,12 +4,11 @@ import nodeMailer from "nodemailer";
 import {v4} from "uuid";
 import env from "dotenv";
 import { AppError } from "@bug-tracker/usermiddleware";
-import { SocketService } from "./socketService";
+import { notificationSocketService } from "./socketService";
 env.config();
 
 export class NotificationService {
     private _notificationRepository: NotificationRepository;
-    private _socketService: SocketService;
 
     constructor() {
         /* Verify if the env data was initialized */
@@ -18,7 +17,6 @@ export class NotificationService {
         }
 
         this._notificationRepository = new NotificationRepository();
-        this._socketService = new SocketService();
     }
 
     /**
@@ -26,29 +24,31 @@ export class NotificationService {
      * @param {NotificationMessage} notificationMessage The user data and the data of the notification 
      * @returns {Notification} The created notification object
      */
-    async createNotification(notificationMessage: NotificationMessage): Promise<Notification> {
+    async createNotification(notificationMessage: NotificationMessage): Promise<Notification | null> {
         const notification: Notification = {
             id: v4(), /* Generate an ID for the notification */
-            email: notificationMessage.email,
+            email: notificationMessage.email ?? null,
             timestamp: Date.now(), /* Generate the timestamp of the notification emittion */
             read: false, /* Mark the notification read status to false */
             readAt: null, /* Mark the read timestamp of the notification to null */
             type: notificationMessage.type,
             message: notificationMessage.message,
             data: notificationMessage.data,
+            channel: notificationMessage.channel,
             sentEmail: false, /* Mark the email send field to false */
         };
 
         /* Check if the type of the notification is of email and if the user email was passed 
             and send the notification to the email of the user */
-        if (notificationMessage.type === "email" && notification.email) {
+        if (notificationMessage.type === "email" && notification.email !== null) {
             await this.sendEmaiNotification(notification.email, notification.message, notification.data);
-        } else {
-            this._socketService.emitToRoom(notificationMessage.userId, "new-notification", notification);
-        }
 
-        /* Send the notification data to the repository service to create the notification document */
-        return await this._notificationRepository.createNotification(notificationMessage.userId, notification);
+            return null;
+        } 
+            notificationSocketService.emitToUser(notificationMessage.userId, "new-notification", notification);
+
+            /* Send the notification data to the repository service to create the notification document */
+            return await this._notificationRepository.createNotification(notificationMessage.userId, notification);
     }
 
     /**
@@ -72,6 +72,10 @@ export class NotificationService {
     async getUserNotifications(userId: string, limit: number, startAfter?: string): Promise<Notification[]> {
         /* Send the data to the repository layer to retrieve the list of user notifications */
         return await this._notificationRepository.getUserNotifications(userId, limit, startAfter);
+    }
+
+    async getUnreadNotifications(userId: string): Promise<Notification[]> {
+        return await this._notificationRepository.getUnreadNotifications(userId);
     }
 
     /**
@@ -105,6 +109,10 @@ export class NotificationService {
      * @param {unknown} data The data of the message
      */
     async sendEmaiNotification(email: string, message: string, data: unknown) {
+        if (!email || typeof email !== "string" || !email.trim()) {
+            console.log(`Sending email to ${email}`);
+            return;
+        }
         /* Create a new nodemailer tranpsorter with the gmail service */
         const transporter = nodeMailer.createTransport({
             service: "gmail",
@@ -123,7 +131,6 @@ export class NotificationService {
             to: email,
             subject: message,
             text: JSON.stringify(data),
-
         });
     }
 }

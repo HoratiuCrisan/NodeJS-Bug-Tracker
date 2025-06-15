@@ -6,6 +6,7 @@ import { updateTicketById } from '../api/tickets'
 import { Ticket } from '../types/Ticket'
 import { useNavigate } from 'react-router-dom'
 import { UserContext } from '../context/UserProvider'
+import { ErrorDialog } from './ErrorDialog'
 
 type UpdateStatusDialogType = {
     defaultStatus: string;
@@ -21,34 +22,35 @@ export const UpdateStatusDialog: React.FC<UpdateStatusDialogType> = ({defaultSta
     const navigate = useNavigate()
     const [statusUpdateValue, setStatusUpdateValue] = useState<string | undefined>(defaultStatus)
     const [error, setError] = useState<string | null>(null)
+    const [errorDialog, setErrorDialog] = useState<boolean>(false);
 
     if (!user) {
         return <div>Loading...</div>
     }
 
     const handleUpdate = async (id: string | undefined) => {
+        console.log(statusUpdateValue);
         setError(null)
-        if (id === undefined) {
-            setError("Error at getting the id")
-            return
+
+        if (!id) {
+            setError("Invalid id");
+            setErrorDialog(true);
+            return;
         }
 
-        if (ticket === undefined) {
-            setError("Error at getting the ticket data")
-            return
-        }
-
-        if (statusUpdateValue === undefined) {
+        if (!statusUpdateValue) {
             setError("Error! Please select a value for status")
+            setErrorDialog(true);
             return
         }
 
-        if (user.displayName) {
+        if (!user.displayName) {
             setError("Unauthenticated user! Please login!")
+            setErrorDialog(true);
             return
         }
         
-        if (error !== null)
+        if (error) 
             return
 
         const changedTicket: Ticket = {
@@ -60,7 +62,7 @@ export const UpdateStatusDialog: React.FC<UpdateStatusDialogType> = ({defaultSta
             handlerId: ticket.handlerId,
             createdAt: ticket.createdAt,
             closedAt: ticket.closedAt,
-            status: ticket.status,
+            status: statusUpdateValue,
             priority: ticket.priority,
             type: ticket.type,
             response: ticket.response,
@@ -77,6 +79,8 @@ export const UpdateStatusDialog: React.FC<UpdateStatusDialogType> = ({defaultSta
 
         isFetched.current = false;
         onClose(true)
+
+        window.location.reload();
     }
 
     return (
@@ -115,6 +119,8 @@ export const UpdateStatusDialog: React.FC<UpdateStatusDialogType> = ({defaultSta
                     </div>
                 </div>
             </div>
+
+            {error && <ErrorDialog text={error} onClose={() => setErrorDialog(false)}/>}
         </div>
     )
 }

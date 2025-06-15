@@ -41,6 +41,7 @@ func NewTaskController(
 // POST methods
 func (c *taskController) CreateTask(w http.ResponseWriter, r *http.Request) {
 	// Get the user data from the user token
+	fmt.Println("here")
 	user, err := middleware.GetUserFromContext(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -55,6 +56,8 @@ func (c *taskController) CreateTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("%+v", inputData)
 
 	// Send the data to the service layer to create the task
 	task, duration, err := utils.MeasureTime("Create-Task", func() (model.Task, error) {
@@ -297,6 +300,7 @@ func (c *taskController) GetTasks(w http.ResponseWriter, r *http.Request) {
 	// Get the ID of the last task retrieved
 	// Value can be nil
 	startAfter := r.URL.Query().Get("startAfter")
+	fmt.Printf("Received startAfter query param: '%s'\n", startAfter)
 
 	// Generate the request schema
 	inputData := schemas.GetTasksSchema{
@@ -305,7 +309,7 @@ func (c *taskController) GetTasks(w http.ResponseWriter, r *http.Request) {
 		OrderBy:        r.URL.Query().Get("orderBy"),
 		OrderDirection: r.URL.Query().Get("orderDirection"),
 		Limit:          limit,
-		StartAfter:     &startAfter,
+		StartAfter:     startAfter,
 	}
 
 	// Validate the input data
@@ -338,8 +342,26 @@ func (c *taskController) GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var taskCards []model.TaskCard
+	for _, task := range tasks {
+		// Get the data of the task handlers and author
+		usersData, err := c.userProducer.GetUsers(append(task.HandlerIDs, task.AuthorID))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Combine the task data and the users data
+		taskCard := model.TaskCard{
+			Task:  task,
+			Users: usersData,
+		}
+
+		taskCards = append(taskCards, taskCard)
+	}
+
 	// Encode the data and return it
-	if err = utils.EncodeData(w, r, tasks); err != nil {
+	if err = utils.EncodeData(w, r, taskCards); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -872,6 +894,8 @@ func (c *taskController) UpdateTaskStatus(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	fmt.Printf("%+v", r.Body)
+
 	// Generate the request schema
 	inputData := schemas.UpdateTaskStatusSchema{
 		UserID: user.UID,
@@ -879,10 +903,12 @@ func (c *taskController) UpdateTaskStatus(w http.ResponseWriter, r *http.Request
 	}
 
 	// Validate the input data and the request body data
-	if err = utils.ValidateBody(r, inputData); err != nil {
+	if err = utils.ValidateBody(r, &inputData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("%+v", inputData)
 
 	// Send the data to the service layer to update the task status
 	task, duration, err := utils.MeasureTime("Update-Task-Status", func() (model.Task, error) {
@@ -962,7 +988,7 @@ func (c *taskController) UpdateSubtaskDescription(w http.ResponseWriter, r *http
 	}
 
 	// Validate the input data and the request body
-	if err = utils.ValidateBody(r, inputData); err != nil {
+	if err = utils.ValidateBody(r, &inputData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -1041,10 +1067,13 @@ func (c *taskController) UpdateSubtaskStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Validate the input data and the body of the request
-	if err = utils.ValidateBody(r, inputData); err != nil {
+	if err = utils.ValidateBody(r, &inputData); err != nil {
+		fmt.Printf("err: %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("%+v", inputData)
 
 	// Send the data to the service layer to update the subtask status
 	subtask, duration, err := utils.MeasureTime("Update-Subtask-Status", func() (model.Subtask, error) {
@@ -1069,6 +1098,8 @@ func (c *taskController) UpdateSubtaskStatus(w http.ResponseWriter, r *http.Requ
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("%+v", subtask)
 
 	// Get the subtask author data
 	usersData, err := c.userProducer.GetUsers([]string{subtask.AuthorID})

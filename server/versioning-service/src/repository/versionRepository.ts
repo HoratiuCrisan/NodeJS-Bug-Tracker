@@ -54,24 +54,24 @@ export class VersionRepository {
      * @param {string} itemType The type of document
      * @returns {Promise<number>} The number of the last version of the item
      */
-    async getLasItemVersion(itemId: string, itemType: string): Promise<number> {
+    async getLastItemVersion(itemId: string, itemType: string): Promise<number> {
         return executeWithHandling(
             async () => {
                 /* Get the versions subcollection for the item */
                 const versionsRef = db.collection(itemType).doc(itemId).collection(this._dbVersionsCollection);
 
                 /* Get the last version of the item, and select the value of its version */
-                let orderedVersios = await versionsRef.orderBy("timestamp", "desc").limit(1).select(this._dbVersionsCollection).get();
+                let orderedVersios = await versionsRef.orderBy("timestamp", "desc").limit(1).select("version").get();
 
-                const versions: Number[] = [];
+                if (orderedVersios.empty) {
+                    return 0;
+                }
 
-                /* Add the value to the list */
-                orderedVersios.forEach((doc) => 
-                    versions.push(doc.data() as Number)
-                );
+                const doc = orderedVersios.docs[0];
+                const data = doc.data();
 
                 /* Return the value of the version */
-                return +versions[0];
+                return data.version ?? 0;
             },
             `GetLastTicketVersionError`,
             500,
@@ -124,6 +124,7 @@ export class VersionRepository {
     async getItemVersions(itemId: string, itemType: string, limit: number, startAfter?: string): Promise<Version[]> {
         return executeWithHandling(
             async () => {
+                console.log(itemId, itemType)
                 /* Get the item versions reference */
                 const itemVersionsRef = db
                     .collection(itemType)

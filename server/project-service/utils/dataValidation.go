@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -20,9 +21,9 @@ var validate = validator.New()
 func ValidateBody(r *http.Request, data any) error {
 	// Encode the request body data into the data variable
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		fmt.Println(err)
 		return err
 	}
-
 	// Validate the data structure
 	return validate.Struct(data)
 }

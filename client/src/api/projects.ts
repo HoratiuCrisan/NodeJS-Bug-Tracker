@@ -1,81 +1,81 @@
-import { env } from "../utils/evnValidation"
-import { Project } from "../types/Project"
-import axios from "axios"
+import { env } from "../utils/evnValidation";
+import { getAxiosInstance } from "./axiosInstance";
+import { Project, ProjectCardType } from "../types/Project";
 
-const PROJECT_END_POINT = env.REACT_APP_PROJECTS_END_POINT;
+const axios = getAxiosInstance(env.REACT_APP_PROJECTS_END_POINT);
 
-const getProjects = async () => {
-    try {
-        const response = await axios.get(`${PROJECT_END_POINT}/`)
+const createProject = async (title: string, description: string, projectManagerId: string, memberIds: string[]) => {
+    console.log(description)
+    const response = await axios.post(`/`, {title, description, projectManagerId, memberIds});
 
-        if (!response) {
-            //TODO: error check
-            return
-        }
-
-        return response.data
-    } catch (err) {
-        console.error(err)
-    }
+    return response.data.data;
 }
 
-const getProjectById = async (id: string | undefined) => {
-    if (id === undefined) {
-        console.log("Failed to fetch the id of the project")
-        return
-    }
+const createInvitationLink = async (projectId: string): Promise<string> => {
+    const response = await axios.post(`/${projectId}/link`);
 
-
-    try {
-        const response = await axios.get(`${PROJECT_END_POINT}/${id}`)
-
-        if (!response) {
-            //TODO: error check
-            return
-        }
-
-        return response.data
-    } catch (err) {
-        console.error(err)
-    }
+    return response.data.data as string;
 }
 
-const createProject = async (project: Project) => {
-    try {
-        const response = await axios.post(`${PROJECT_END_POINT}/`, project)
+const getUserProjects = async (userId: string): Promise<Project[]> => {
+    const response = await axios.get(`/${userId}/user`);
 
-        if (!response) {
-            //Todo: error check
-            return
-        }
-
-        return response
-    } catch (err) {
-        console.error(err)
-    }
+    return response.data.data as Project[];
 }
 
-const updateProject = async (project: Project, id: string | undefined) => {
-    if (id === undefined) {
-        console.error("Project id could not be fetched!")
-        return
-    }
-
-    try {
-        console.log(id, project)
-        const response = await axios.put(`${PROJECT_END_POINT}/${id}`, project)
-
-        if (!response) {
-            // TOD: handle error
-            return
-        }
-
-        return response.data
-    } catch (err) {
-        console.error(err)
-    }
+const getProjects = async (): Promise<Project[]> => {
+    const response = await axios.get(`/`);
+    
+    return response.data.data as Project[];
 }
 
+const getProjectById = async (projectId: string): Promise<ProjectCardType> => {
+    const response = await axios.get(`/${projectId}`);
 
+    return response.data.data as ProjectCardType;
+}
 
-export { getProjects, getProjectById, createProject, updateProject } 
+const joinProject = async (code: string, expires: number): Promise<Project> => {
+    console.log(code, expires);
+    const response = await axios.put(`/join?code=${code}&expires=${expires}`);
+
+    return response.data.data as Project;
+}
+
+const updateProjectTitle = async (projectId: string, title: string): Promise<Project> => {
+    console.log(title);
+    const response = await axios.put(`/${projectId}/title`, {title});
+
+    return response.data.data;
+}
+
+const updateProjectDescription = async (projectId: string, description: string): Promise<Project> => {
+    const response = await axios.put(`/${projectId}/description`, {description});
+
+    return response.data.data;
+}
+
+const removeProjectMembers = async (projectId: string, memberIds: string[]): Promise<Project> => {
+    const response = await axios.put(`/${projectId}/removeMembers`, {memberIds});
+    
+    return response.data.data;
+}
+
+const deleteProject = async (projectId: string) => {
+    const response = await axios.delete(`/${projectId}`);
+
+    return response.data.data;
+}
+ 
+export {
+    createProject,
+    createInvitationLink,
+    getProjects,
+    getUserProjects,
+    getProjectById,
+    joinProject,
+    updateProjectTitle,
+    updateProjectDescription,
+    removeProjectMembers,
+    deleteProject
+}

@@ -1,3 +1,5 @@
+import { User } from "./User";
+
 export type Project = {
     id: string;
     title: string;
@@ -7,3 +9,9 @@ export type Project = {
     createdAt: number;
     code: string;
 }
+
+export type ProjectCardType = {
+    members: User[];
+    projectManager: User;
+    data: Project;
+};

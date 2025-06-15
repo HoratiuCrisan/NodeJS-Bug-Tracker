@@ -4,8 +4,9 @@ import { DatePicker } from '../DatePicker'
 import { ErrorMessageCard } from '../../authentication/ErrorMessageCard'
 import { TicketFormType} from '../../types/Ticket'
 import { selectStyles, customStyles } from '../../utils/Select-Styles'
+import { TextEditor } from '../TextEditor'
 
-export const TicketForm: React.FC<TicketFormType> = ({formData, formError, onSubmit, onInputChange, priority, type}) => {
+export const TicketForm: React.FC<TicketFormType> = ({formData, formError, onSubmit, onInputChange, priority, type, value}) => {
     return (
         <form 
             onSubmit={onSubmit} 
@@ -95,6 +96,7 @@ export const TicketForm: React.FC<TicketFormType> = ({formData, formError, onSub
                 >
                     Deadline
                     <DatePicker 
+                        value={value}
                         onInputChange={onInputChange}
                         style={"block w-full text-sm md:w-1/3 xl:w-2/5 2xl:w-1/6 border-2 border-gray-300 focus:border-gray-800 rounded-md p-2 mb-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"}
                     />

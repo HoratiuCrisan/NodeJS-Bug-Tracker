@@ -5,13 +5,14 @@ import { responseHandler } from "../middleware/responseHandler";
 import { Response } from "express";
 import { VersionDetails, FirebaseUser } from "../types/User";
 
-type NotificationDetails = {
+export type NotificationDetails = {
     users: {
         id: string,
         email: string | undefined,
         message: string,
     }[],
     type: string,
+    channel: "tickets" | "tasks" | "projects" | "messages";
     data: unknown,
 };
 
@@ -73,6 +74,7 @@ export async function handleResponseSuccess({
                 user.email,
                 user.message,
                 notificationDetails.type,
+                notificationDetails.channel,
                 notificationDetails.data,
             );
 

@@ -11,7 +11,7 @@ type TaskRepository interface {
 	CreateSubtask(ctx context.Context, taskId string, subtask model.Subtask) (model.Subtask, error)
 	CreateTaskResponse(ctx context.Context, taskId string, response model.Response) (model.Response, error)
 
-	GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter *string) ([]model.Task, error)
+	GetTasks(ctx context.Context, projectId string, limit int, orderBy string, orderDirection string, startAfter string) ([]model.Task, error)
 	GetTaskById(ctx context.Context, taskId string) (model.Task, error)
 	GetSubtasks(ctx context.Context, taskId string) ([]model.Subtask, error)
 	GetSubtaskById(ctx context.Context, taskId, subtaskId string) (model.Subtask, error)

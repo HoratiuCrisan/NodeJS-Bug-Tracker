@@ -46,7 +46,7 @@ const createSubtask = async (taskId: string, handlerId: string, description: str
  */
 const createTaskResponse = async (taskId: string, message: string): Promise<Response> => {
     /* Send the request to the task server */
-    const response = await axios.post(`/${taskId}/response`, message);
+    const response = await axios.post(`/${taskId}/response`, {message});
 
     /* Return the response data */
     return response.data.data as Response;
@@ -60,15 +60,15 @@ const createTaskResponse = async (taskId: string, message: string): Promise<Resp
  * @param {number} limit The number of tasks to retrieve
  * @param {string} orderBy The order criteria
  * @param {string} orderDirection The direction of the ordering
- * @param {string | undefined} startAfter The ID of the last project task retrieved at the previous fetching request
- * @returns {Promise<Task[]>} The list of task objects retrieved
+ * @param {string | null} startAfter The ID of the last project task retrieved at the previous fetching request
+ * @returns {Promise<TaskCard[]>} The list of task objects retrieved
  */
-const getTasks = async (projectId: string, limit: number, orderBy: string, orderDirection: string, startAfter?: string): Promise<Task[]> => {
+const getTasks = async (projectId: string, limit: number, orderBy: string, orderDirection: string, startAfter: string | null): Promise<TaskCard[]> => {
     /* Send the request to the task server */
     const response = await axios.get(`/${projectId}?limit=${limit}&orderBy=${orderBy}&orderDirection=${orderDirection}&startAfter=${startAfter}`);
-
+    console.log(response);
     /* Return the response data */
-    return response.data.data as Task[];
+    return response.data.data as TaskCard[];
 }
 
 /**
@@ -149,8 +149,8 @@ const updateTaskDescription = async (taskId: string, description: string): Promi
  */
 const updateTaskStatus = async (taskId: string, status: string): Promise<Task> => {
     /* Send the reqeust to the tasks server */
-    const respone = await axios.put(`/${taskId}/status`, status);
-
+    const respone = await axios.put(`/${taskId}/status`, {status});
+    console.log(status);
     /* Return the response data */
     return respone.data.data as Task;
 }
@@ -192,7 +192,7 @@ const removeTaskHandlers = async (taskId: string, handlerIds: string[]): Promise
  */
 const updateSubtaskDescription = async (taskId: string, subtaskId: string, description: string): Promise<Subtask> => {
     /* Send the request to the tasks server */
-    const response = await axios.put(`/${taskId}/${subtaskId}/description`, description);
+    const response = await axios.put(`/${taskId}/description/${subtaskId}`, {description});
 
     /* Return the response data */
     return response.data.data as Subtask;
@@ -207,7 +207,8 @@ const updateSubtaskDescription = async (taskId: string, subtaskId: string, descr
  */
 const updateSubtaskStatus = async (taskId: string, subtaskId: string, status: boolean): Promise<Subtask> => {
     /* Send the request to the tasks server */
-    const response = await axios.put(`/${taskId}/${subtaskId}/status`, status);
+    console.log(status);
+    const response = await axios.put(`/${taskId}/status/${subtaskId}`, {status});
 
     /* Return the response data */
     return response.data.data as Subtask;
@@ -222,7 +223,7 @@ const updateSubtaskStatus = async (taskId: string, subtaskId: string, status: bo
  */
 const updateSubtaskHandler = async (taskId: string, subtaskId: string, handlerId: string): Promise<Subtask> => {
     /* Send the request to the tasks server */
-    const response = await axios.put(`/${taskId}/${subtaskId}/description`, handlerId);
+    const response = await axios.put(`/${taskId}/${subtaskId}/handler`, {handlerId});
 
     /* Return the response data */
     return response.data.data as Subtask;
@@ -237,7 +238,7 @@ const updateSubtaskHandler = async (taskId: string, subtaskId: string, handlerId
  */
 const updateResponseMessage = async (taskId: string, responseId: string, message: string): Promise<Response> => {
     /* Send the request to the tasks server */
-    const response = await axios.put(`/${taskId}/responses`);
+    const response = await axios.put(`/${taskId}/responses/${responseId}`, {message});
 
     /* Return the response data */
     return response.data.data as Response;

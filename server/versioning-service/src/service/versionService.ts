@@ -34,7 +34,7 @@ export class VersionService {
         const itemType = this.checkItemType(type);
         
         /* Get the number value of the previous version of the item */
-        const versionNumber = await this._versionRepository.getLasItemVersion(data.id, itemType);
+        const versionNumber = await this._versionRepository.getLastItemVersion(data.id, itemType);
 
         /* Create the version item object */
         const versionData = this.createItemVersionObject(data, versionNumber);

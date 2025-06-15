@@ -1,5 +1,5 @@
 import { GroupConversation, Message, MessageMedia } from "../types/Conversation";
-import admin from "../../config/firebase";
+import admin from "../config/firebase";
 import { executeWithHandling } from "@bug-tracker/usermiddleware";
 import { AppError } from "@bug-tracker/usermiddleware";
 import dotenv from "dotenv";
@@ -54,6 +54,8 @@ export class GroupRepository {
     async addMessage(message: Message): Promise<Message> {
         return executeWithHandling(
             async () => {
+
+                console.log(message);
                 /* Create a message document inside the Messages subcollection for the Groups collection */
                 const messageRef = db
                     .collection(this.dbGroupCollection)
@@ -74,7 +76,8 @@ export class GroupRepository {
 
                 /* Update the last text message sent in the group with the message added above */
                 await groupRef.update({
-                    lastMessage: message.text
+                    lastMessage: message.text,
+                    lastMessageTimestamp: Date.now(),
                 });
 
                 /* Return the message data */
@@ -83,6 +86,32 @@ export class GroupRepository {
             `CreateMessageError`,
             500,
             `Faild to send the message`
+        );
+    }
+
+    /**
+     * 
+     * @param {string} userId The ID of the user
+     * @returns {Promise<GroupConversation[]>} The list of groups the user is part of
+     */
+    async getUserGroups(userId: string): Promise<GroupConversation[]> {
+        return executeWithHandling(
+            async () => {
+                const groupsRef = db.collection(this.dbGroupCollection).where("members", "array-contains", userId).orderBy("lastMessageTimestamp", "desc");
+
+                const groupsSnapshot = await groupsRef.get();
+
+                const groups: GroupConversation[] = [];
+
+                groupsSnapshot.forEach((doc) => {
+                    groups.push(doc.data() as GroupConversation);
+                });
+
+                return groups;
+            },
+            `GetUserGroupsError`,
+            500,
+            `Failed to retrieve the groups the user is part of`
         );
     }
 
@@ -189,7 +218,7 @@ export class GroupRepository {
                 });
 
                 /* Return the message collection */
-                return messages;
+                return messages.reverse();
             },
             `GetMessagesError`,
             500,
@@ -250,7 +279,7 @@ export class GroupRepository {
                 }
 
                 /* Update the group title */
-                await groupRef.set({
+                await groupRef.update({
                     title: title
                 });
 
@@ -284,8 +313,8 @@ export class GroupRepository {
                 }
 
                 /* Update the group title */
-                await groupRef.set({
-                    title: description
+                await groupRef.update({
+                    description: description
                 });
 
                 /* Return group with the updated title */
@@ -318,8 +347,8 @@ export class GroupRepository {
                 }
 
                 /* Update the group title */
-                await groupRef.set({
-                    title: photoUrl
+                await groupRef.update({
+                    photoUrl: photoUrl
                 });
 
                 /* Return group with the updated title */

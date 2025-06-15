@@ -36,6 +36,12 @@ const getUserNotifications = async (limit: number, startAfter?: string): Promise
     return response.data.data as Notification[];
 }
 
+const getUnreadNotifications = async (): Promise<Notification[]> => {
+    const response = await axios.get(`/unread`);
+
+    return response.data.data as Notification[];
+}
+
 /**
  * 
  * @param {string} notificationId The ID of the notification to read
@@ -51,6 +57,7 @@ const readNotification = async(notificationId: string): Promise<Notification> =>
 
 export {
     getNotification,
+    getUnreadNotifications,
     getUserNotifications,
     readNotification,
 };

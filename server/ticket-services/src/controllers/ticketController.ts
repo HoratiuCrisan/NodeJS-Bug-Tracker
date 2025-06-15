@@ -1,7 +1,7 @@
 import {Response, NextFunction} from "express";
 import { TicketService } from "../services/ticketService";
 import { Ticket, TicketCard } from "../types/Tickets";
-import { CustomRequest, handleResponseSuccess, measureTime, User, validateData } from "@bug-tracker/usermiddleware";
+import { CustomRequest, handleResponseSuccess, measureTime, User, validateData, NotificationDetails } from "@bug-tracker/usermiddleware";
 import {
     createTicketSchema,
     getAllTicketsSchema,
@@ -13,6 +13,8 @@ import {
 } from "../schemas/ticketSchemas";
 
 const ticketService = new TicketService();
+const allowedOrderBy = ["title", "deadline", "createdAt", "status", "priority"] as const;
+type TicketSortableKeys = typeof allowedOrderBy[number];
 
 export class TicketController {
     public static async createTicket(req: CustomRequest, res: Response, next: NextFunction) {
@@ -88,6 +90,8 @@ export class TicketController {
                 },
                 getAllTicketsSchema, /* The validation schema */
             );
+
+            console.log(inputData)
 
             let searchQuery = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
@@ -165,7 +169,7 @@ export class TicketController {
 
     static async getUserTickets(req: CustomRequest, res: Response, next: NextFunction) {
         try {
-            
+            console.log("here")
             /* Validate the data based on schema */
             const inputData = validateData(
                 {
@@ -185,40 +189,44 @@ export class TicketController {
             
             let searchQuery = undefined, status = undefined, priority = undefined, startAfter = undefined;
 
-            /* Check if the search query was sent */
             if (inputData.searchQuery && inputData.searchQuery !== "undefined") {
-                searchQuery = String(searchQuery);
+                searchQuery = String(inputData.searchQuery);
             }
 
-            /* Check if the status was sent */
-            if (inputData.status && inputData.startAfter !== "undefined") {
-                /* Convert the status to a string */
+            if (inputData.status && inputData.status !== "undefined") {
                 status = String(inputData.status);
             }
 
-            /* Check if the priority was sent */
             if (inputData.priority && inputData.priority !== "undefined") {
-                /* Convert the priority to a string */
                 priority = String(inputData.priority);
             }
 
-            /* Check if the ID of the last ticket was sent */
-            if (inputData.startAfter && inputData.startAfter != "undefined" ) {
-                /* Convert the ID to a string */
+            if (inputData.startAfter && inputData.startAfter !== "undefined") {
                 startAfter = String(inputData.startAfter);
             }
+
+            let orderBy = inputData.orderBy as string ;
+
+            if (!orderBy || !allowedOrderBy.includes(orderBy as TicketSortableKeys)) {
+
+                orderBy = "createdAt"; 
+            }
+
+            const validatedOrderBy = orderBy as TicketSortableKeys;
 
             /* Send the data to the service layer to retrieve the user tickets */
             const { data: tickets, duration } = await measureTime(async () => ticketService.getUserTickets(
                 inputData.userId,
                 inputData.limit,
-                inputData.orderBy,
+                validatedOrderBy,
                 inputData.orderDirection,
                 searchQuery,
                 status,
                 priority,
                 startAfter
             ), `Get-user-tickets`);
+
+            console.log(tickets.map((ticket) => ticket.id));
 
             /* Generate the log data */
             const logDetails = {
@@ -357,6 +365,21 @@ export class TicketController {
                 data: ticket,
             };
 
+            const userToNotify = inputData.userId! !== ticket.authorId ? inputData.userId : ticket.handlerId;
+
+            const notificationDetails: NotificationDetails = {
+                users: [
+                    {
+                        id: userToNotify!,
+                        email: undefined,
+                        message: `Your ticket "${ticket.title}" was updated`,
+                    }
+                ],
+                type: "in-app",
+                channel: "tickets",
+                data: ticket,
+            }
+
             /* Return the data with the success message */
             await handleResponseSuccess({
                 req,
@@ -365,7 +388,7 @@ export class TicketController {
                 message: `Ticket updated successfully`,
                 data: ticket,
                 logDetails,
-                notificationDetails: undefined,
+                notificationDetails,
                 versionDetails,
             });
         } catch (error) {
@@ -408,7 +431,7 @@ export class TicketController {
             };
 
             /* Generate the notification data */
-            const notificationDetails = {
+            const notificationDetails: NotificationDetails = {
                 users: [
                     {
                         id: inputData.userId,
@@ -421,8 +444,9 @@ export class TicketController {
                         message: `You were assigned a new ticket "${ticket.title}"`,
                     },
                 ],
-                type: "email",
-                data: `http://localhost:3000/tickets/${ticket.id}`,
+                type: "in-app",
+                channel: "tickets",
+                data: ticket,
             };
         
             /* Generate the ticket version */
@@ -481,13 +505,14 @@ export class TicketController {
             };
 
             /* Generate notification details */
-            const notificationDetails = {
+            const notificationDetails: NotificationDetails = {
                 users: [{
                         id: inputData.userId!,
                         email: inputData.userEmail,
                         message: `Your ticket "${inputData.ticketTitle}"`,
                     }],
                 type: `email`,
+                channel: "tickets",
                 data: null,
             };
 

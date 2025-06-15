@@ -23,9 +23,9 @@ export const createTicketSchema = Joi.object({
         "any.required": `"Type" is required to perform the operation`,
         "string.empty": `"Type" cannot be an empty string`,
     }),
-    deadline: Joi.string().required().messages({
-        "any.required": `"Deadline" is required to perform the operation`,
-        "string.empty": `"Deadline" cannot be an empty string`,   
+    deadline: Joi.number().required().messages({
+        
+       
     }),
 });
 

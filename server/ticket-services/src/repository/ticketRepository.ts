@@ -7,6 +7,9 @@ const db = admin.firestore();
 const FieldPath = admin.firestore.FieldPath;
 env.config();
 
+type TicketSortableKeys = "title" | "deadline" | "createdAt" | "status" | "priority";
+
+
 export class TicketRepository {
     /* Ticket Repository is used to interact with the Firebase database,
     and perform CRUD operations on the tickets */
@@ -69,25 +72,19 @@ export class TicketRepository {
                 /* Get the tickets collection query */
                 let ticketsRef: FirebaseFirestore.Query<FirebaseFirestore.DocumentData> = 
                     db.collection(this._dbTicketsCollection);
-
-                /* If the api call contains a status, filter the Tickets collection
-                    based on the ticket status that was sent */
-                if (status) {
-                    ticketsRef = ticketsRef.where("status", "==", status);
-                }
-
-                /* If the api call contains a priority type, filter the Tickets collection
-                    based on the ticket priority that was sent */
-                if (priority) {
-                    ticketsRef = ticketsRef.where("priority", "==", priority);
-                }
+                
+                ticketsRef = ticketsRef.where("handlerId", "==", null);
 
                 /* Order the tickets colletion by the order criteria and the direction, 
                     received from the api call */
-
-                /* Check if the ordering direction is valid */
                 if (orderDirection !== "asc" && orderDirection !== "desc") {
                     throw new AppError(`InvalidDirectionOrder`, 400, `Invalid tickets order direction`);
+                }
+
+                /* Check if the ordering direction is valid */
+                const allowedOrderByFields = ["title", "deadline", "priority", "createdAt", "status"];
+                if (!allowedOrderByFields.includes(orderBy)) {
+                    throw new AppError(`InvalidOrderField`, 400, `Invalid order criteria`);
                 }
 
                 ticketsRef.orderBy(orderBy, orderDirection);
@@ -118,7 +115,7 @@ export class TicketRepository {
                 });
 
                 /* If the search query was not received return the list of retrieved tickets */
-                if (!searchQuery) return tickets;
+                if (!searchQuery || searchQuery === 'undefined') return tickets;
 
                 /* COnvert the search query to lowercase */
                 const query = searchQuery.toLocaleLowerCase();
@@ -148,90 +145,111 @@ export class TicketRepository {
      * @param {string | undefined} startAfter Optional ticket ID for pagination
      * @returns {Promise<Ticket[]>} List of retrieved tickets
      */
-    async getUserTickets(
-        userId: string,
-        limit: number,
-        orderBy: string,
-        orderDirection: "asc" | "desc",
-        searchQuery?: string,
-        status?: string,
-        priority?: string,
-        startAfter?: string,
-    ): Promise<Ticket[]> {
-        return executeWithHandling(
-            async () => {
-                /* Query over the tickets collection where the user is either a ticket handler of the ticket author */
-                const buildQuery = (field: "authorId" | "handlerId") => {
-                    let q = db.collection(this._dbTicketsCollection)
-                        .where(field, "==", userId);
+   async getUserTickets(
+    userId: string,
+    limit: number,
+    orderBy: TicketSortableKeys,
+    orderDirection: "asc" | "desc",
+    searchQuery?: string,
+    status?: string,
+    priority?: string,
+    startAfter?: string,
+): Promise<Ticket[]> {
+    return executeWithHandling(
+        async () => {
+            // Helper function to build Firestore query filtered by author or handler
+            const buildQuery = (field: "authorId" | "handlerId") => {
+                let q = db.collection(this._dbTicketsCollection)
+                    .where(field, "==", userId);
 
-                    /* If the status was received, filter the tickets with the same status */
-                    if (status) q = q.where("status", "==", status);
-                    
-                    /* If the priority was received, filter the tickets with the same priority */
-                    if (priority) q = q.where("priority", "==", priority);
+                if (status) q = q.where("status", "==", status);
+                if (priority) q = q.where("priority", "==", priority);
 
-                    return q;
-                };
+                return q;
+            };
 
-                /* Get the list of tickets for both cases */
-                const [authorSnap, handlerSnap] = await Promise.all([
-                    buildQuery("authorId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
-                    buildQuery("handlerId").select("id", "title", "status", "priority", "authorId", "deadline").get(),
-                ]);
+            // Fetch tickets where user is author or handler
+            const [authorSnap, handlerSnap] = await Promise.all([
+                buildQuery("authorId").select("id", "title", "status", "priority", "authorId", "deadline", "description", "createdAt").get(),
+                buildQuery("handlerId").select("id", "title", "status", "priority", "authorId", "deadline", "description", "createdAt").get(),
+            ]);
 
-                /* Merge both cases lists into one */
-                let combined: Ticket[] = [
-                    ...authorSnap.docs,
-                    ...handlerSnap.docs,
-                ]
-                .map(doc => ({...doc.data() }))
-                .filter(ticket => ticket.authorId !== ticket.handlerId) as Ticket[];
+            // Combine and extract data
+            let combined: Ticket[] = [
+                ...authorSnap.docs,
+                ...handlerSnap.docs,
+            ]
+            .map(doc => doc.data() as Ticket);
 
-                /* Filter the combined tickets based on the searchQuery parameter if it was received */
-                if (searchQuery) {
-                    combined = combined.filter(ticket => {
-                        ticket.title.toLocaleLowerCase().includes(searchQuery) ||
-                        ticket.description.toLocaleLowerCase().includes(searchQuery)
-                    })
+            // Remove duplicates (tickets where authorId and handlerId overlap in both queries)
+            const seenIds = new Set<string>();
+            combined = combined.filter(ticket => {
+                if (seenIds.has(ticket.id)) {
+                    return false;
+                } else {
+                    seenIds.add(ticket.id);
+                    return true;
+                }
+            });
+
+            // Apply search filter if provided
+            if (searchQuery) {
+                const queryLower = searchQuery.toLowerCase();
+                combined = combined.filter(ticket =>
+                    ticket.title?.toLowerCase().includes(queryLower) ||
+                    ticket.description?.toLowerCase().includes(queryLower)
+                );
+            }
+
+            // Validate orderBy
+            const allowedOrderBy = ["title", "deadline", "createdAt", "status", "priority"];
+            if (!allowedOrderBy.includes(orderBy)) {
+                throw new AppError(`InvalidOrderField`, 400, `Invalid order criteria`);
+            }
+
+            // Sort tickets based on orderBy and orderDirection
+            combined.sort((a, b) => {
+                let aVal = a[orderBy];
+                let bVal = b[orderBy];
+
+                // Normalize dates
+                if (orderBy === "deadline" || orderBy === "createdAt") {
+                    aVal = aVal ? new Date(aVal).getTime() : 0;
+                    bVal = bVal ? new Date(bVal).getTime() : 0;
                 }
 
-                /* Check if the order field is allowed */
-                if (orderBy !== "title" && orderBy !== "deadline" && orderBy !== "createdAt" && orderBy !== "status" && orderBy !== "priority") {
-                    throw new AppError(`InvalidOrderField`, 400, `Invalid order criteria`);
+                // Normalize strings
+                if (typeof aVal === "string") aVal = aVal.toLowerCase();
+                if (typeof bVal === "string") bVal = bVal.toLowerCase();
+
+                if (aVal === bVal) return 0;
+
+                if (orderDirection === "asc") {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
                 }
-                
-                /* Sort the combined list based on the order field */
-                combined.sort((a, b) => {
-                    const aVal = a[orderBy];
-                    const bVal = b[orderBy];
+            });
 
-                    if (aVal === bVal) return 0;
-
-                    /* Sort in the selected order direction */
-                    if (orderDirection === "asc") {
-                        return aVal > bVal ? 1 : -1;
-                    } else {
-                        return aVal < bVal ? 1 : -1;
-                    }
-                });
-
-                /* Handle pagination manually */
-                if (startAfter) {
-                    const startIndex = combined.findIndex(ticket => ticket.id === startAfter);
-                    if (startIndex >= 0) {
-                        return combined.slice(startIndex + 1, startIndex + 1 + limit);
-                    }
+            // Pagination using startAfter (ticket.id)
+            if (startAfter) {
+                const startIndex = combined.findIndex(ticket => ticket.id === startAfter);
+                if (startIndex >= 0) {
+                    return combined.slice(startIndex + 1, startIndex + 1 + limit);
                 }
+                // If not found, return empty array or first page - here, return empty
+                return [];
+            }
 
-                /* Return the limited list of tickets */
-                return combined.slice(0, limit);
-            },
-            "RetrieveUserTicketsError",
-            500,
-            "Failed to retrieve user tickets list"
-        );
-    }
+            // Return limited tickets
+            return combined.slice(0, limit);
+        },
+        "RetrieveUserTicketsError",
+        500,
+        "Failed to retrieve user tickets list"
+    );
+}
+
 
     /**
      * 

@@ -1,10 +1,10 @@
-import express from 'express';
+import express, { NextFunction } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import chatRouter from './routes/chats';
 import groupRouter from './routes/groups';
-import { SocketService } from './service/socketService';
-import { AppError, errorHandler } from '@bug-tracker/usermiddleware';
+import { socketService } from './service/socketService';
+import { AppError, CustomRequest, errorHandler } from '@bug-tracker/usermiddleware';
 import env from "dotenv";
 env.config();
 
@@ -20,7 +20,7 @@ const app = express();
 const server = createServer(app);
 
 /* Generate and initialize a new socket server */
-const socketService = new SocketService();
+// const socketService = new SocketService();
 socketService.initialize(server);
 
 app.use(express.json());
@@ -29,11 +29,17 @@ app.use(express.json());
 app.use(cors({
     origin: `${process.env.CLIENT}`,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }));
 
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use("/uploads", express.static("public/uploads"));
 /* Call the api routers */
 app.use(`${process.env.CHAT_ROUTE}`, chatRouter);
-app.use(`${process.env.GROU_ROUTE}`, groupRouter);
+app.use(`${process.env.GROUP_ROUTE}`, groupRouter);
 
 /* Use the error handler middleware */
 app.use(errorHandler);

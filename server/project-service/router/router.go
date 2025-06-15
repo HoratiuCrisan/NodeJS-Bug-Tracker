@@ -6,6 +6,7 @@ import (
 
 	"firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/horatiucrisan/project-service/controller"
 	"github.com/horatiucrisan/project-service/firebase"
 	"github.com/horatiucrisan/project-service/interfaces"
@@ -29,6 +30,14 @@ import (
 func NewRouter(userProducer *rabbitmq.UserProducer, logProducer, notificationProducer *rabbitmq.ProjectProducer) (http.Handler, error) {
 	// Generate a new chi router
 	r := chi.NewRouter()
+
+	// Add cors middleware
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-type", "X-CSRF-Token"},
+		AllowCredentials: true,
+	}))
 
 	// Initialize the router context
 	ctx := context.Background()
@@ -75,6 +84,7 @@ func projectRoutes(r chi.Router, authClient *auth.Client, projectController inte
 		r.Get("/{projectId}", projectController.GetProjectById)
 
 		// PUT routes
+		r.Put("/join", projectController.JoinProjectMembers)
 		r.Put("/{projectId}/title", projectController.UpdateProjectTitle)
 		r.Put("/{projectId}/description", projectController.UpdateProjectDescription)
 		r.Put("/{projectId}/manager", projectController.UpdateProjectManager)

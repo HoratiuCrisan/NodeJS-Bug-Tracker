@@ -34,7 +34,7 @@ const getLog = async (logId: string, day: string, type: string): Promise<LogMess
  */
 const getLogs = async (day: string, type: string, limit: number, startAfter?: string): Promise<LogMessage[]> => {
     /* Send the reqeust to the logs server */
-    const response = await axios.get(`/${day}/${type}`);
+    const response = await axios.get(`/${day}/${type}?limit=${limit}&startAfter=${startAfter}`);
 
     /* Return the response data */
     return response.data.data as LogMessage[];

@@ -34,7 +34,7 @@ type UpdateProjectTitleSchema struct {
 type UpdateProjectDescriptionSchema struct {
 	UserID      string `validate:"required"`
 	ProjectID   string `validate:"required"`
-	Description string `validate:"required,min=10,max=255"`
+	Description string `validate:"required,min=10"`
 }
 
 type UpdateProjectManagerSchema struct {

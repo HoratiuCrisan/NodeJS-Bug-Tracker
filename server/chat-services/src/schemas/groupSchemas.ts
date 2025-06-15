@@ -19,7 +19,7 @@ export const createGroupSchema = Joi.object({
         "array.min": `"Members" should contain at least 1 member`,
         "any.required": `"Members" is requreied and cannot be undefined`,
     }), 
-    photoUrl: Joi.string().uri().required().messages({
+    photoUrl: Joi.string().required().messages({
         "string.base": `"PhotoUrl" must be a string`,
         "string.empty": `"PhotoUrl" cannot be an empty string`,
     }),
@@ -50,6 +50,13 @@ export const getGroupDataSchema = Joi.object({
     groupId: Joi.string().required().messages({
         "any.required": `"Group ID" is required to perform the operation`,
         "string.empty": `"Group ID" cannot be an empty string`,
+    }),
+});
+
+export const getUserGroupsSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
     }),
 });
 

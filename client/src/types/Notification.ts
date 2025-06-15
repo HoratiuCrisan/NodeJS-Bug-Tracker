@@ -1,11 +1,12 @@
 export type Notification = {
     id: string;
-    email?: string;
+    email: string | null;
     timestamp: number;
     type: string;
     message: string;
     read: boolean;
     readAt: null | number;
-    data?: unknown;
+    data?: any;
+    channel: "tickets" | "tasks" | "projects" | "messages";
     sentEmail: boolean;
 }

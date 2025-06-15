@@ -36,6 +36,14 @@ router.get(
 );
 
 router.get(
+    "/data/non-users",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    UserController.getNonUsers,
+);
+
+router.get(
     "/:userId",
     verifyToken,
     checkRequestError,
@@ -66,6 +74,14 @@ router.put(
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
     UserController.updatePhotoUrl,
 );
+
+router.put(
+    "/status",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    UserController.updateUserStatus,
+)
 
 router.put(
     "/password",

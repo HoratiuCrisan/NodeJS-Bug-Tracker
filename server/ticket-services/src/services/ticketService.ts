@@ -11,6 +11,8 @@ import {
 } from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/notification-lib/src";
 import {UserProducer} from "@bug-tracker/usermiddleware/node_modules/@bug-tracker/user-lib/src";
 
+type TicketSortableKeys = "title" | "deadline" | "createdAt" | "status" | "priority";
+
 /* The Ticket Service class: 
     Encapsulates the business logic: 
         like error handling and permission checking;
@@ -107,12 +109,14 @@ export class TicketService {
             startAfter
         );
 
-        /* Check if the key was previously cached */
-        const cached = await this.getCachedTickets(redisKey);
+        // /* Check if the key was previously cached */
+        // const cached = await this.getCachedTickets(redisKey);
 
-        if (cached) {
-            return cached;
-        }
+        // if (cached) {
+        //     return cached;
+        // }
+
+        if (orderDirection !== "asc" && orderDirection !== "desc") return [];
 
         /* If the key was not cached, send the data to the repository layer to retrieve the tickets list from the data base */
         const tickets = await this._ticketRepository.getAllTickets(limit, orderBy, orderDirection, searchQuery, status, priority, startAfter);
@@ -142,7 +146,7 @@ export class TicketService {
     async getUserTickets(
         userId: string,
         limit: number, 
-        orderBy: string, 
+        orderBy: TicketSortableKeys, 
         orderDirection: string, 
         searchQuery?: string,
         status?: string,
@@ -166,12 +170,15 @@ export class TicketService {
         );
 
         /* Check if the key is cached */
-        const cached = await this.getCachedTickets(redisKey);
+        if (startAfter) {
+            const cached = await this.getCachedTickets(redisKey);
 
-        /* If the query key is cached return the cahced tickets list */
-        if (cached) {
-            return cached;
+            /* If the query key is cached return the cahced tickets list */
+            if (cached) {
+                return cached;
+            }
         }
+        
 
         /* If the key is not cached send the data to the repository layer to retrieve the user tickets */
         const tickets = await this._ticketRepository.getUserTickets(userId, limit, orderBy, orderDirection, searchQuery, status, priority, startAfter);
@@ -458,6 +465,7 @@ export class TicketService {
                 user.email, 
                 `email`, 
                 `Ticket "${ticket.title}" is due at ${new Date(ticket.deadline).toLocaleString()}`, 
+                "tickets",
                 ticket
             ));
         });

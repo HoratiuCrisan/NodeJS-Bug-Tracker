@@ -2,15 +2,15 @@ import { ChatRepository } from "../repository/chatRepository";
 import { AppError } from "@bug-tracker/usermiddleware";
 import { Conversation, Message, MessageMedia } from "../types/Conversation";
 import { v4 } from "uuid";
-import { SocketService } from "./socketService";
+import { socketService } from "./socketService";
 
 export class ChatService {
     private chatRepository: ChatRepository;
-    private socketService: SocketService;
+    // private socketService: SocketService;
 
     constructor() {
         this.chatRepository = new ChatRepository();
-        this.socketService = new SocketService();
+        // this.socketService = new SocketService();
     }
 
     /**
@@ -25,6 +25,7 @@ export class ChatService {
             members: [userId, receivedId], /* Add the user and the receiver to the members list */
             createdAt: Date.now(),
             lastMessage: null, /* Set the last message to null since no message was sent to the conversation yet */
+            lastMessageTimestamp: null,
         }
 
         /* Send the conversation object to the repository layer */
@@ -54,7 +55,7 @@ export class ChatService {
         /* Create the message object */
         const message: Message = {
             id: v4(), /* Generate the ID of the user */
-            author: userId, /* Set the author of the message to the user ID */
+            authorId: userId, /* Set the author of the message to the user ID */
             conversation: conversation.id,
             timestamp: Date.now(),
             status: "sent",
@@ -74,11 +75,13 @@ export class ChatService {
         /* Update the last message of the conversation */
         await this.updateLastMessage(conversationId, lastMessage);
 
+        const addedMessage = await this.chatRepository.addMessage(conversation.id, message);
+
         /* Send the message to the socket room */
-        this.socketService.emitEventToRoom(conversationId, `new-conversation-message`, message);
+        socketService.emitEventToRoom(conversation.id, `new-conversation-message`, addedMessage);
 
         /* Send the data to the repository layer */
-        return await this.chatRepository.addMessage(conversationId, message);
+        return addedMessage;
     }
 
     /**
@@ -123,6 +126,10 @@ export class ChatService {
 
         /* Send the data to the repository layer to retrieve the messages list */
         return await this.chatRepository.getConversationMessages(conversationId, limit, startAfter);
+    }
+
+    async checkConversation(userId1: string, userId2: string): Promise<Conversation | null> {
+        return await this.chatRepository.checkConversation(userId1, userId2);
     }
 
     /**
@@ -170,7 +177,7 @@ export class ChatService {
         let message = await this.getMessage(userId, conversationId, messageId);
 
         /* Check if the user that sent the request is the author of the message */
-        this.isUserAuthor(userId, message.author);
+        this.isUserAuthor(userId, message.authorId);
 
         /* Get the text value of the message */
         const messageValue = this.isLastMessage(message.text, message.media);
@@ -186,7 +193,7 @@ export class ChatService {
         const updatedMessage =  this.chatRepository.updateMessage(conversationId, messageId, text);
 
         /* Send the updated message data to the socket room */
-        this.socketService.emitEventToRoom(conversationId, 'conversation-message-updated', updatedMessage);
+        socketService.emitEventToRoom(conversationId, 'conversation-message-updated', updatedMessage);
 
         /* Return the updated message data */
         return updatedMessage;
@@ -212,19 +219,17 @@ export class ChatService {
      */
     async viewMessages(userId: string, conversationId: string, messages: string[]): Promise<Message[]> {
         /* Create an array to add the updated messages to */
-        const updatedMessages: Message[] = [];
 
         /* Map over the messages list */
-        messages.forEach(async (messageId: string) => {
-            /* For each message ID, send the data to the repository layer and update the readBy field */
-            const updatedMessage = await this.chatRepository.viewMessage(userId, conversationId, messageId, Date.now());
+         /* For each message ID, send the data to the repository layer and update the readBy field */
+        const updatePromises = messages.map(messageId => 
+            this.chatRepository.viewMessage(userId, conversationId, messageId, Date.now())
+        );
 
-            /* Add the updated message to the list created above */
-            updatedMessages.push(updatedMessage);
-        });
+        const updatedMessages = await Promise.all(updatePromises); 
 
         /* Send the viewed messages to the socket room */
-        this.socketService.emitEventToRoom(conversationId, "conversation-messages-viewed", updatedMessages);
+        socketService.emitEventToRoom(conversationId, "conversation-messages-viewed", updatedMessages);
 
         /* Return the list with the updated messages */
         return updatedMessages;
@@ -261,7 +266,7 @@ export class ChatService {
             const message = await this.getMessage(userId, conversationId, messageId);
 
             /* Check if the user is the author of the message */
-            this.isUserAuthor(userId, message.author);
+            this.isUserAuthor(userId, message.authorId);
 
             /* Get the text value for the message */
             const messageValue = this.isLastMessage(message.text, message.media);
@@ -277,7 +282,7 @@ export class ChatService {
         });
 
         /* Send the deleted event to the socket room */
-        this.socketService.emitEventToRoom(conversationId, "conversation-messages-deleted", messages);
+        socketService.emitEventToRoom(conversationId, "conversation-messages-deleted", messages);
         
         return "OK";
     }

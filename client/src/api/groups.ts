@@ -7,6 +7,15 @@ const axios = getAxiosInstance(env.REACT_APP_GROUPS_END_POINT);
 
 /* POST requests */
 
+const uploadGroupFiles = async (file: File): Promise<MessageMedia> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axios.post(`/upload/files`, formData);
+
+    return response.data.data as MessageMedia;
+}
+
 /**
  * 
  * @param {string} title The title of the group chat
@@ -27,11 +36,12 @@ const createGroup = async (title: string, description: string, members: string[]
  * 
  * @param {string} groupId The ID of the group conversation
  * @param {string} text The text message sent by the user
- * @param {MessageMedia | null} media The media data sent by the user
+ * @param {MessageMedia[] | null} media The media data sent by the user
  * @returns {Promise<Message>} The created group chat message
  */
-const addGroupMessage = async (groupId: string, text: string, media: MessageMedia | null): Promise<Message> => {
+const addGroupMessage = async (groupId: string, text: string, media: MessageMedia[] | null): Promise<Message> => {
     /* Send the request to the group server */
+    console.log(groupId);
     const response = await axios.post(`/${groupId}`, {text, media});
 
     /* Return the data of the response */
@@ -39,6 +49,12 @@ const addGroupMessage = async (groupId: string, text: string, media: MessageMedi
 }
 
 /* GET requests */
+
+const getUserGroups = async () => {
+    const response = await axios.get(`/list`);
+
+    return response.data.data as GroupConversation[];
+}
 
 /**
  * 
@@ -91,7 +107,7 @@ const getUnreadGroupMessages = async (groupId: string): Promise<Message[]> => {
  */
 const updateGroupTitle = async (groupId: string, title: string): Promise<GroupConversation> => {
     /* Send the request to the group server */
-    const response = await axios.put(`/${groupId}/title`, title);
+    const response = await axios.put(`/${groupId}/title`, {title});
 
     /* Return the response data */
     return response.data.data as GroupConversation;
@@ -105,7 +121,7 @@ const updateGroupTitle = async (groupId: string, title: string): Promise<GroupCo
  */
 const updateGroupDescription = async (groupId: string, description: string): Promise<GroupConversation> => {
     /* Send the request to the group server */
-    const response = await axios.put(`/${groupId}/description`, description);
+    const response = await axios.put(`/${groupId}/description`, {description});
 
     /* Return the response data */
     return response.data.data as GroupConversation;
@@ -119,7 +135,7 @@ const updateGroupDescription = async (groupId: string, description: string): Pro
  */
 const updateGroupPhoto = async (groupId: string, photoUrl: string): Promise<GroupConversation> => {
     /* Send the request to the group server */
-    const response = await axios.put(`/${groupId}/photo`, photoUrl);
+    const response = await axios.put(`/${groupId}/photo`, {photoUrl});
 
     /* Return the response data */
     return response.data.data as GroupConversation;
@@ -132,8 +148,9 @@ const updateGroupPhoto = async (groupId: string, photoUrl: string): Promise<Grou
  * @returns {Promise<GroupConversation>} The updated gropu conversation data
  */
 const addMembers = async (groupId: string, members: string[]): Promise<GroupConversation> => {
+    console.log(groupId)
     /* Send the reqeust to the group server */
-    const response = await axios.put(`/${groupId}/addMembers`, members);
+    const response = await axios.put(`/${groupId}/addMembers`, {members});
 
     /* Return teh response data */
     return response.data.data as GroupConversation;
@@ -147,7 +164,7 @@ const addMembers = async (groupId: string, members: string[]): Promise<GroupConv
  */
 const removeMembers = async (groupId: string, members: string[]): Promise<GroupConversation> => {
     /* Send the reqeust to the group server */
-    const response = await axios.put(`/${groupId}/removeMembers`, members);
+    const response = await axios.put(`/${groupId}/removeMembers`, {members});
 
     /* Return the resposne data */
     return response.data.data as GroupConversation;
@@ -161,7 +178,7 @@ const removeMembers = async (groupId: string, members: string[]): Promise<GroupC
  */
 const viewGroupMessages = async (groupId: string, messages: string[]): Promise<Message[]> => {
     /* Send the request to the group server */
-    const response = await axios.put(`/${groupId}/viewMessages`, messages);
+    const response = await axios.put(`/${groupId}/viewMessages`, {messages});
 
     /* Return the viewed messages from the response data */
     return response.data.data as Message[];
@@ -197,8 +214,10 @@ const deleteGroupMessages = async (groupId: string, messages: string[]): Promise
 }
 
 export {
+    uploadGroupFiles,
     createGroup,
     addGroupMessage,
+    getUserGroups,
     getGroupData,
     getGroupMessages,
     getUnreadGroupMessages,

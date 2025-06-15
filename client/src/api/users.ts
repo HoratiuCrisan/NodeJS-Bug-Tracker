@@ -41,6 +41,12 @@ const getUsers = async (orderBy: string, orderDirection: string, limit: number, 
     return response.data.data as User[];
 }
 
+const getNonUsers = async (): Promise<User[]> => {
+    const response = await axios.get(`/data/non-users`);
+
+    return response.data.data;
+}
+
 /**
  * 
  * @param {string[]} userIds The list of user IDs 
@@ -48,7 +54,7 @@ const getUsers = async (orderBy: string, orderDirection: string, limit: number, 
  */
 const getUsersData = async (userIds: string[]): Promise<User[]> => {
     /* Send the request to the users server */
-    const response = await axios.get(`/data`);
+    const response = await axios.get(`/data`, {params: {userIds}});
 
     /* Return the response data */
     return response.data.data as User[];
@@ -108,6 +114,12 @@ const updatePhotoUrl = async (photoUrl: string): Promise<User> => {
     return response.data.data as User;
 }
 
+const updateStatus = async (status: "offline" | "online"): Promise<User> => {
+    const response = await axios.put("/status", {status});
+
+    return response.data.data;
+}
+
 /**
  * 
  * @param {string} password The new account password
@@ -155,10 +167,12 @@ export {
     createNewUser, 
     loginUser, 
     getUsers, 
+    getNonUsers,
     getUsersData,
     getUserById, 
     updateDisplayName, 
     updateEmail, 
+    updateStatus,
     updatePassword, 
     updatePhotoUrl, 
     updateRole, 

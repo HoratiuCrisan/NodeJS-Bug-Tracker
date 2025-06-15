@@ -24,6 +24,13 @@ export const getUserNotificationsSchema = Joi.object({
     startAfter: Joi.optional(),
 });
 
+export const getUnreadNotificationsSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required in order to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
+    }),
+});
+
 export const updateNotificationSchema = Joi.object({
     userId: Joi.string().required().messages({
         "any.required": `"User ID" is required to perform the operation`,

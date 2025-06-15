@@ -9,7 +9,7 @@ export { errorHandler } from "./middleware/errorHandler";
 export { checkRequestError } from "./middleware/checkRequestError";
 export { verifyUserRole } from "./middleware/roleMiddleware";
 export { responseHandler } from "./middleware/responseHandler";
-export { handleResponseSuccess } from "./utils/handleResponseSuccess";
+export { handleResponseSuccess, NotificationDetails } from "./utils/handleResponseSuccess";
 
 /* Utils functionalities */
 export { AppError } from "./utils/appError";

@@ -164,6 +164,29 @@ export class UserRepository {
         );
     }
 
+    async getNonUsers(): Promise<User[]> {
+        return executeWithHandling(
+            async () => {
+                const usersRef = db.collection(this._dbUsersCollection).orderBy("displayName", "asc");
+
+                const filteredUsers = usersRef.where("role", "!=", "user");
+
+                const usersSnapshot = await filteredUsers.get();
+
+                const users: User[] = [];
+
+                usersSnapshot.forEach(async (doc) => {
+                    users.push(doc.data() as User);
+                });
+
+                return users;
+            },
+            `FailedToGetNonUsers`,
+            500,
+            `Failed to retrieve members that are not users`
+        );
+    }
+
     /**
      * 
      * @param {string} userIds The list of user IDs
@@ -173,11 +196,12 @@ export class UserRepository {
         return executeWithHandling(
             async () => {
                 const users: User[] = [];
-
+                
+                const filteredUsers = userIds.filter((usr) => usr !== "");
                 /* Iterate over the list of user IDs and generate chunks of items to retrieve */
-                for (let i = 0; i < userIds.length; i+= 10) {
+                for (let i = 0; i < filteredUsers.length; i+= 10) {
                     /* Set the chunk to 10 (max allowed chunk for the free plan) */
-                    const chunk = userIds.slice(i, i + 10);
+                    const chunk = filteredUsers.slice(i, i + 10);
 
                     /* Get the snapshots for the chunk of users */
                     const snapshot = await db   

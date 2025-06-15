@@ -12,6 +12,17 @@ export const createConversationSchema = Joi.object({
     }),
 });
 
+export const checkConversationSchema = Joi.object({
+    userId: Joi.string().required().messages({
+        "any.required": `"User ID" is required to perform the operation`,
+        "string.empty": `"User ID" cannot be an empty string`,
+    }),
+    receiverId: Joi.string().required().messages({
+        "any.required": `"Receiver ID" is required to perform the operation`,
+        "string.empty": `"Receiver ID" cannot be an empty string`,
+    }),
+})
+
 /* Schema for adding a new message to a conversation */
 export const addMessageSchema = Joi.object({
     userId: Joi.string().required().messages({
@@ -22,6 +33,10 @@ export const addMessageSchema = Joi.object({
         "any.required": `"Conversation ID" is required to perform the operation`,
         "string.empty": `"Conversation ID" cannot be an empty string`,
     }),
+    text: Joi.string().max(255).required().messages({
+           "string.max": `"Text" should have a maximum length of 255 characters`
+    }),
+    media: Joi.any(),
 });
 
 /* Schema for fetching the conversations of a user */

@@ -30,6 +30,7 @@ export const EditTicketDialog: React.FC<EditTicketDialogProps> = ({onClose, tick
                         isFetched={isFetched}
                     />
                 </div>
+                
             </div>
 
         </div>

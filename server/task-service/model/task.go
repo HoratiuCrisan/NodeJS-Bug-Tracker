@@ -5,16 +5,20 @@ import (
 )
 
 type Task struct {
-	ID          string   `firestore:"id" json:"id"`
-	AuthorID    string   `firestore:"authorId" json:"authorId"`
-	ProjectID   string   `firestore:"projectId" json:"projectId"`
-	HandlerIDs  []string `firestore:"handlerIds" json:"handlerIds"`
-	Description string   `firestore:"description" json:"description"`
-	Status      string   `firestore:"status" json:"status"`
-	Deadline    int64    `firestore:"deadline" json:"deadline"`
-	CreatedAt   int64    `firestore:"createdAt" json:"createdAt"`
-	CompletedAt *int64   `firestore:"completedAt,omitempty" json:"completedAt,omitempty"`
+	ID                    string   `firestore:"id" json:"id"`
+	AuthorID              string   `firestore:"authorId" json:"authorId"`
+	ProjectID             string   `firestore:"projectId" json:"projectId"`
+	HandlerIDs            []string `firestore:"handlerIds" json:"handlerIds"`
+	Description           string   `firestore:"description" json:"description"`
+	Status                string   `firestore:"status" json:"status"`
+	Deadline              int64    `firestore:"deadline" json:"deadline"`
+	CreatedAt             int64    `firestore:"createdAt" json:"createdAt"`
+	CompletedAt           *int64   `firestore:"completedAt,omitempty" json:"completedAt,omitempty"`
+	SubtaskCount          int64    `firestore:"subtaskCount" json:"subtaskCount"`
+	ResponseCount         int64    `firestore:"responseCount" json:"responseCount"`
+	CompletedSubtaskCount int64    `firestore:"completedSubtaskCount" json:"completedSubtaskCount"`
 }
+
 type Subtask struct {
 	ID          string `firestore:"id" json:"id"`
 	TaskID      string `firestore:"taskId" json:"taskId"`
@@ -24,6 +28,7 @@ type Subtask struct {
 	CreatedAt   int64  `firestore:"createdAt" json:"createdAt"`
 	Done        bool   `firestore:"done" json:"done"`
 }
+
 type Response struct {
 	ID        string `firestore:"id" json:"id"`
 	AuthorID  string `firestore:"authorId" json:"authorId"`
@@ -89,4 +94,10 @@ type DataVersion struct {
 	Type      string `firestore:"type" json:"type"`
 	Timestamp int64  `firestore:"timestamp" json:"timestamp"`
 	Data      any    `firestore:"data" json:"data"`
+}
+
+type EncodedResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
 }

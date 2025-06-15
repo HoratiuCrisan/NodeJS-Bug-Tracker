@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { CustomRequest, validateData, measureTime, handleResponseSuccess } from "@bug-tracker/usermiddleware";
+import { CustomRequest, validateData, measureTime, handleResponseSuccess, NotificationDetails } from "@bug-tracker/usermiddleware";
 import { UserService } from "../service/userService";
 import {
     createUserSchema,
@@ -7,12 +7,14 @@ import {
     getUsersSchema,
     getUsersDataSchema,
     getUserSchema,
+    getNonUsersSchema,
     updateDisplayNameSchema,
     updateEmailSchema,
     updatePhotoUrlSchema,
     updatePasswordSchema,
     updateUserRoleSchema,
     deleteUserSchema,
+    updateUserStatusSchema,
 } from "../schemas/userSchemas";
 
 const userService = new UserService();
@@ -30,8 +32,6 @@ export class UserController {
                 },
                 createUserSchema, /* Validate the data based on the schema */
             );
-
-            console.log(req.user);
             
             /* Send the data to the service layer to create the user */
             const { data: user, duration } = await measureTime(async () => userService.createUser(
@@ -150,15 +150,43 @@ export class UserController {
         }
     }
 
+    public static async getNonUsers(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id
+                },
+                getNonUsersSchema,
+            );
+
+            const {data: users, duration } = await measureTime(
+                async () => userService.getNonUsers(),
+                "Get-Non-Users"
+            );
+
+            await handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `Users retrieved successfully`,
+                data: users
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     public static async getUsersData(req: CustomRequest, res: Response, next: NextFunction) {
         try {
             const inputData = validateData(
                 {
                     userId: req.user?.user_id,
-                    userIds: req.body.userIds,
+                    userIds: userService.parseIds((req.query['userIds[]']) as unknown),
                 },
                 getUsersDataSchema
             );
+
+            console.log(inputData);
 
             /* Send the request to the service layer to retrieve the users data */
             const {data: users, duration } = await measureTime(
@@ -404,8 +432,6 @@ export class UserController {
                 updateUserRoleSchema, /* Validate the data based on the schema */
             );
 
-            console.log(inputData);
-
             /* Send the data to the service layer to update the role of the user */
             const { data: user, duration } = await measureTime(
                 async () => userService.updateUserRole(inputData.userId!, inputData.role),
@@ -423,7 +449,7 @@ export class UserController {
             };
 
             /* Generate notification data for the updated user */
-            const notificationDetails = {
+            const notificationDetails: NotificationDetails = {
                 users: [
                     {
                         id: inputData.userId,
@@ -432,6 +458,7 @@ export class UserController {
                     }
                 ],
                 type: `email`,
+                channel: "messages",
                 data: null,
             };
 
@@ -444,6 +471,43 @@ export class UserController {
                 data: user,
                 logDetails,
                 notificationDetails,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    public static async updateUserStatus(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id,
+                    status: req.body.status,
+                },
+                updateUserStatusSchema,
+            );
+
+            const { data: user, duration } = await measureTime(
+                async () => userService.updateUserStatus(inputData.userId!, inputData.status),
+                "Update-user-status"
+            );
+            
+            const logDetails = {
+                message: `User "${req.user?.user_id}" is now ${inputData.status}`,
+                type: `audit`,
+                status: 201,
+                duration,
+                user: req.user!,
+                data: user,
+            };
+
+            await handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `Updated user status successfully`,
+                data: user,
+                logDetails,
             });
         } catch (error) {
             next(error);

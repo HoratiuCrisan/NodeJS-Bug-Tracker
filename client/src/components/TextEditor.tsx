@@ -36,6 +36,7 @@ export const TextEditor: React.FC<Props> = ({value, onChange, readonly, classnam
     return (
         <div className="">
             <ReactQuill 
+                id="#editor"
                 theme="snow"
                 modules={modules}
                 formats={formats}

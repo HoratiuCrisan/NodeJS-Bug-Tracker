@@ -22,6 +22,7 @@ type User struct {
 	DisplayName        string `firestore:"displayName" json:"displayName"`
 	PhotoURL           string `firestore:"photoUrl" json:"photoUrl"`
 	Role               string `firestore:"role" json:"role"`
+	Status             string `firestore:"status" json:"status"`
 	LastConnectedAt    *int64 `firestore:"lastConnectedAt" json:"lastConnectedAt"`
 	LastDisconnectedAt *int64 `firestore:"lastDisconnectedAt" json:"lastDisconnectedAt"`
 }
@@ -61,4 +62,10 @@ type NotificationUser struct {
 	UserID  string `firestore:"userId" json:"userId"`
 	Email   string `firestore:"email" json:"email"`
 	Message string `firestore:"message" json:"message"`
+}
+
+type EncodedResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
 }

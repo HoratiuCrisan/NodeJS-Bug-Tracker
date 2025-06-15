@@ -68,6 +68,7 @@ export type TicketFormType = {
     ) => void;
     priority: TicketOptions[];
     type: TicketOptions[];
+    value: number;
 }
 
 export interface TicketFormProps {

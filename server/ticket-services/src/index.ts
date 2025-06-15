@@ -22,7 +22,7 @@ app.use(cors({
 
 app.use(express.json())
 
-app.use(limitAccess);
+//app.use(limitAccess);
 app.use(errorHandler);
 app.use(`${process.env.ROUTE}`, ticketRouter);
 

@@ -7,6 +7,17 @@ const axios = getAxiosInstance(env.REACT_APP_CONVERSATIONS_END_POINT);
 
 /* POST reqeusts */
 
+const uploadConversationFile = async (file: File): Promise<MessageMedia> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await axios.post(`/upload/files`, formData);
+
+    console.log(response);
+
+    return response.data.data;
+}
+
 /**
  * 
  * @param {string} receiverId The ID of the other user 
@@ -14,7 +25,7 @@ const axios = getAxiosInstance(env.REACT_APP_CONVERSATIONS_END_POINT);
  */
 const createConversation = async (receiverId: string): Promise<ChatConversation> => {
     /* Send the request to the chats server */
-    const response = await axios.post(`/`, receiverId);
+    const response = await axios.post(`/`, {receiverId});
 
     /* Return the response data */
     return response.data.data as ChatConversation;
@@ -24,10 +35,10 @@ const createConversation = async (receiverId: string): Promise<ChatConversation>
  * 
  * @param {string} converstaionId The ID of the conversation
  * @param {string} text The text message sent by the user 
- * @param {MessageMedia | null} media The media message sent by the user
+ * @param {MessageMedia[] | null} media The media message sent by the user
  * @returns {Promise<Message>} The generated message object
  */
-const addConversationMessage = async (converstaionId: string, text: string, media: MessageMedia | null): Promise<Message> => {
+const addConversationMessage = async (converstaionId: string, text: string, media: MessageMedia[] | null): Promise<Message> => {
     /* Send the request to the chats server */
     const response = await axios.post(`/${converstaionId}`, {text, media});
 
@@ -48,6 +59,16 @@ const getConversation = async (conversationId: string): Promise<ChatConversation
 
     /* Return the response data */
     return response.data.data as ChatConversation;
+}
+
+const checkConversation = async (receivedId: string): Promise<ChatConversation | null> => {
+    const response = await axios.get(`/exists/${receivedId}`);
+
+    const data = response.data.data;
+
+    if (!data) return null;
+
+    return data as ChatConversation;
 }
 
 /**
@@ -129,7 +150,7 @@ const updateConversationMessage = async (conversationId: string, messageId: stri
  */
 const viewConversationMessages = async (conversationId: string, messages: string[]): Promise<Message[]> => {
     /* Send the request to the chats server */
-    const response = await axios.put(`/${conversationId}/messages/view`, messages);
+    const response = await axios.put(`/${conversationId}/messages/view`, {messages});
 
     /* Return the response data */
     return response.data.data as Message[];
@@ -165,8 +186,10 @@ const deleteConversationMessages = async (conversationId: string, messages: stri
 }
 
 export {
+    uploadConversationFile,
     createConversation,
-    addConversationMessage, 
+    addConversationMessage,
+    checkConversation, 
     getConversation,
     getUserConversations,
     getUnreadConversationMessages,

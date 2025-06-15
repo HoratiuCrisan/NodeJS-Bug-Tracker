@@ -6,7 +6,7 @@ type CreateTaskSchema struct {
 	AuthorID    string   `validate:"required"`
 	ProjectID   string   `validate:"required"`
 	HandlerIDs  []string `validate:"required,min=1,max=50,dive,required"`
-	Description string   `validate:"required,min=10,max=225"`
+	Description string   `validate:"required,min=1"`
 	Deadline    int64    `validate:"required"`
 }
 
@@ -26,12 +26,12 @@ type CreateTaskResponseSchema struct {
 // GET schemas
 
 type GetTasksSchema struct {
-	UserID         string  `validate:"required"`
-	ProjectID      string  `validate:"required"`
-	Limit          int     `validate:"required,min=1"`
-	OrderBy        string  `validate:"required"`
-	OrderDirection string  `validate:"required"`
-	StartAfter     *string `validate:"omitempty"`
+	UserID         string `validate:"required"`
+	ProjectID      string `validate:"required"`
+	Limit          int    `validate:"required,min=1"`
+	OrderBy        string `validate:"required"`
+	OrderDirection string `validate:"required"`
+	StartAfter     string `validate:"omitempty"`
 }
 
 type GetSubtasksSchema struct {
@@ -89,14 +89,14 @@ type UpdateSubtaskDescriptionSchema struct {
 	UserID      string `validate:"required"`
 	TaskID      string `validate:"required"`
 	SubtaskID   string `validate:"required"`
-	Description string `validate:"required,min=10,max=255"`
+	Description string `validate:"required"`
 }
 
 type UpdateSubtaskStatusSchema struct {
 	UserID    string `validate:"required"`
 	TaskID    string `validate:"required"`
 	SubtaskID string `validate:"required"`
-	Status    bool   `validate:"required"`
+	Status    bool   `svalidate:"required" `
 }
 
 type UpdateSubtaskHandlerSchema struct {
@@ -110,7 +110,7 @@ type UpdateResponseMessageSchema struct {
 	UserID     string `validate:"required"`
 	TaskID     string `validate:"required"`
 	ResponseID string `validate:"required"`
-	Message    string `validate:"required"`
+	Message    string `json:"message" validate:"required"`
 }
 
 type RerollTaskVersion struct {

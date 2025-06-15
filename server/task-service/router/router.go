@@ -6,6 +6,7 @@ import (
 
 	"firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 	"github.com/horatiucrisan/task-service/controller"
 	"github.com/horatiucrisan/task-service/firebase"
 	"github.com/horatiucrisan/task-service/interfaces"
@@ -30,6 +31,14 @@ import (
 func NewRouter(userProducer *rabbitmq.UserProducer, loggerProducer, notificationProducer, versionProducer *rabbitmq.TaskProducer) (http.Handler, error) {
 	// Generae a new chi router
 	r := chi.NewRouter()
+
+	// Add cors middleware
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3000"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-type", "X-CSRF-Token"},
+		AllowCredentials: true,
+	}))
 
 	// Initialize the router context
 	ctx := context.Background()
@@ -84,9 +93,9 @@ func taskRoutes(r chi.Router, authClient *auth.Client, taskController interfaces
 		r.Put("/{taskId}/status", taskController.UpdateTaskStatus)
 		r.Put("/{taskId}/addHandlers", taskController.AddTaskHandlers)
 		r.Put("/{taskId}/removeHandlers", taskController.RemoveTaskHandlers)
-		r.Put("/{taskId}/{subtaskId}/description", taskController.UpdateSubtaskDescription)
+		r.Put("/{taskId}/description/{subtaskId}", taskController.UpdateSubtaskDescription)
 		r.Put("/{taskId}/{subtaskId}/handler", taskController.UpdateSubtaskHandler)
-		r.Put("/{taskId}/{subtaskId}/status", taskController.UpdateSubtaskStatus)
+		r.Put("/{taskId}/status/{subtaskId}", taskController.UpdateSubtaskStatus)
 		r.Put("/{taskId}/responses/{responseId}", taskController.UpdateResponseMessage)
 		r.Put("/{taskId}/rollback/", taskController.RerollTaskVersion)
 		r.Put("/{taskId}/rollback/{subtaskId}", taskController.RerollSubtaskVersion)

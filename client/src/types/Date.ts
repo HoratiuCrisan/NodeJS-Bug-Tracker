@@ -4,4 +4,5 @@ export type DatePickerType = {
         value : number,
         field: 'deadline',
     ) => void;
+    value: number;
 };

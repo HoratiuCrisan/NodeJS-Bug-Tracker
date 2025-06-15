@@ -63,6 +63,8 @@ func (c *projectController) CreateProject(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	fmt.Printf("%+v", project)
+
 	// Generate the log data
 	if err = rabbitmq.GenerateLogData(
 		w,
@@ -647,16 +649,26 @@ func (c *projectController) JoinProjectMembers(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	expires, err := strconv.Atoi(r.URL.Query().Get("expires"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Validate the user ID data and the request body data
 	// of the user that clicked the invitation link
 	inputData := schemas.InvitationLinkSchema{
-		UserID: user.UID,
+		UserID:  user.UID,
+		Code:    r.URL.Query().Get("code"),
+		Expires: int64(expires),
 	}
 
-	if err = utils.ValidateBody(r, &inputData); err != nil {
+	if err = utils.ValidateParams(inputData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Println(inputData.Code)
 
 	// Send the data to the service layer to add the user to the members list
 	project, duration, err := utils.MeasureTime("Join-project-by-link", func() (model.Project, error) {

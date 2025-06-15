@@ -420,46 +420,42 @@ func (r *projectRepository) AddProjectMembers(ctx context.Context, projectId str
 //   - model.Project: The updated project data
 //   - error: An error that occured during the update process
 func (r *projectRepository) JoinProjectMembers(ctx context.Context, userId, code string) (model.Project, error) {
-	// Get all the projects with the code
+	// Get the project with the given code
 	docSnapshots, err := r.client.Collection(utils.EnvInstances.PROJECTS_COLLECTION).Where("code", "==", code).Documents(ctx).GetAll()
 	if err != nil {
 		return model.Project{}, err
 	}
-
-	// Get the project document data
-	var projects []model.Project
-	for _, docSnapshot := range docSnapshots {
-		var project model.Project
-		if err = docSnapshot.DataTo(&project); err != nil {
-			return model.Project{}, err
-		}
-
-		projects = append(projects, project)
+	if len(docSnapshots) == 0 {
+		return model.Project{}, fmt.Errorf("invalid invitation code")
 	}
 
-	project := projects[0]
-
-	// Check if the user is the manager and stop the process if so
-	if userId == project.ProjectManagerID {
-		return model.Project{}, nil
+	var project model.Project
+	if err := docSnapshots[0].DataTo(&project); err != nil {
+		return model.Project{}, err
 	}
 
-	// Check if the user is part of the members list
-	// and stop the process if so
-	if slices.Contains(project.MemberIDs, userId) == true {
-		return model.Project{}, nil
+	// Don't add the manager or existing members
+	if userId == project.ProjectManagerID || slices.Contains(project.MemberIDs, userId) {
+		return project, nil
 	}
 
-	// Add the user to the project members list
-	project.MemberIDs = append(project.MemberIDs, userId)
-
-	// Update the project data
-	_, err = r.client.Collection(utils.EnvInstances.PROJECTS_COLLECTION).Doc(project.ID).Set(ctx, project)
+	// Add the member safely
+	_, err = r.client.Collection(utils.EnvInstances.PROJECTS_COLLECTION).
+		Doc(project.ID).
+		Update(ctx, []firestore.Update{
+			{Path: "memberIds", Value: firestore.ArrayUnion(userId)},
+		})
 	if err != nil {
 		return model.Project{}, err
 	}
 
-	return project, nil
+	// Optional: reload updated project to return accurate data
+	docSnap, err := r.client.Collection(utils.EnvInstances.PROJECTS_COLLECTION).Doc(project.ID).Get(ctx)
+	if err != nil {
+		return model.Project{}, err
+	}
+	err = docSnap.DataTo(&project)
+	return project, err
 }
 
 // RemoveProjectMembers retrieves a list of users from the service layer and removes them from the project members list

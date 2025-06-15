@@ -10,6 +10,9 @@ export type Task = {
     deadline: number;
     createdAt: number;
     completedAt: number | null;
+    responseCount: number;
+    subtaskCount: number;
+    completedSubtaskCount: number;
 };
 
 export type Subtask = {
@@ -25,7 +28,7 @@ export type Subtask = {
 export type Response = {
     id: string;
     taskId: string;
-    authorId: User;
+    authorId: string;
     message: string;
     timestamp: number;
 };

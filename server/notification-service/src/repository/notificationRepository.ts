@@ -94,7 +94,7 @@ export class NotificationRepository {
                     .collection(this._dbNotifications);
 
                 /* Order the notifications based on the timestamp */
-                let orderedNotifications = notificationsRef.orderBy("timestamp", "desc");
+                let orderedNotifications = notificationsRef.orderBy("timestamp", "desc").where("type", "==", "in-app");
 
                 /* Check if the ID of the last notification was passed */
                 if (startAfter) {
@@ -127,6 +127,32 @@ export class NotificationRepository {
             `GetUserNotificationsError`,
             500,
             `Failed to retrieve user notifications`
+        );
+    }
+
+    async getUnreadNotifications(userId: string): Promise<Notification[]> {
+        return executeWithHandling(
+            async () => {
+                const notificationsRef = db
+                    .collection(this._dbNotifications)
+                    .doc(userId)
+                    .collection(this._dbNotifications)
+                    .where("read", "==", false)
+                    .orderBy("timestamp", "desc");
+
+                const notificationsSnapshot = await notificationsRef.get();
+
+                const notifications: Notification[] = [];
+
+                notificationsSnapshot.forEach((doc) => {
+                    notifications.push(doc.data() as Notification);
+                });
+
+                return notifications;
+            },
+            `GetUnreadNotificationsError`,
+            500,
+            `Failed to retrieved unread user notifications`
         );
     }
 

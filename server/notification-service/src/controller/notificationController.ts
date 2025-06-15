@@ -4,7 +4,8 @@ import { NotificationService } from "../service/notificationService";
 import {
     getNotificationSchema,
     getUserNotificationsSchema,
-    updateNotificationSchema
+    updateNotificationSchema,
+    getUnreadNotificationsSchema,
 } from "../schemas/notificationSchemas";
 
 const notificationService = new NotificationService();
@@ -94,6 +95,42 @@ export class NotificationController {
                 res,
                 httpCode: 201,
                 message: `Notifications retrieved successfully`,
+                data: notifications,
+                logDetails,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    static async getUnreadNotifications(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id,
+                },
+                getUnreadNotificationsSchema,
+            );
+
+            const { data: notifications, duration } = await measureTime(
+                async () => notificationService.getUnreadNotifications(inputData.userId!),
+                "Get-Unread-Notifications"
+            );
+
+            const logDetails = {
+                message: `User "${inputData.userId}" retrieved the unread notifications`,
+                type: `info`,
+                user: req.user!,
+                status: 201,
+                duration,
+                data: notifications,
+            }
+
+            await handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `Unread notificatiosn retrieved successfully`,
                 data: notifications,
                 logDetails,
             });

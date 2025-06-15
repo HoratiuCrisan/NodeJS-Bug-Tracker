@@ -1,33 +1,48 @@
-import { Server} from "socket.io";
-import {Server as HttpServer} from "node:http";
-import { AppError } from "@bug-tracker/usermiddleware";
+// socketService.ts
+import { Server } from "socket.io";
+import { Server as HttpServer } from "http";
 
-export class SocketService {
-    private _io: Server | null;
+class NotificationSocketService {
+    private io: Server | null = null;
 
-    constructor() {
-        this._io = null;
-    }
-
-    initializeIO(server: HttpServer): void {
-        try {
-            this._io = new Server(server, {
+    initialize(server: HttpServer) {
+        this.io = new Server(server, {
             cors: {
-                origin: "http://localhost:3000",
-                methods: ["POST", "GET", "PUT", "DELETE"],
+                origin: "http://localhost:3000", 
+                methods: ["GET", "POST", "PUT", "DELETE"],
             },
         });
-        } catch (error) {
-            console.error(`Failed to initalize io connection`);
-        }
+
+        this.io.on("connection", (socket) => {
+            console.log("Notification socket connected:", socket.id);
+
+            // Join personal user room
+            socket.on("join", (userId: string) => {
+                socket.join(userId);
+                console.log(`User ${userId} joined their notification room`);
+            });
+
+            socket.on("disconnect", () => {
+                console.log("Notification socket disconnected:", socket.id);
+            });
+        });
     }
 
-
-    emitToRoom(roomId: string, event: string, data: unknown) {
-        if (!this._io) {
-            throw new AppError(`NotificationSocketConnectionError`, 300, `Failed to initialize socket connection`);
+    getIO(): Server {
+        if (!this.io) {
+            throw new Error("Notification Socket.IO not initialized");
         }
+        return this.io;
+    }
 
-        this._io.to(roomId).emit(event, data);
+    emitToUser(userId: string, event: string, data: unknown) {
+        console.log(`[Notification Emit] Event "${event}" to user ${userId}`);
+        const io = this.getIO();
+        io.to(userId).emit(event, {
+            receiverId: userId,
+            notification: data,
+        });
     }
 }
+
+export const notificationSocketService = new NotificationSocketService();

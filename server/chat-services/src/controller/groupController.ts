@@ -1,10 +1,11 @@
-import {CustomRequest} from "@bug-tracker/usermiddleware";
+import {AppError, CustomRequest, NotificationDetails} from "@bug-tracker/usermiddleware";
 import { NextFunction, Response } from "express";
 import { GroupService } from "../service/groupService";
 import { validateData, handleResponseSuccess, measureTime } from "@bug-tracker/usermiddleware";
 import { 
     addMessageSchema, 
     createGroupSchema, 
+    getUserGroupsSchema,
     getGroupDataSchema, 
     getGroupMessagesSchema,
     getUnreadMessagesSchema,
@@ -21,6 +22,29 @@ const groupService = new GroupService();
 
 export class GroupController {
     /* POST requests */
+    public static async upload(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const file = req.file;
+
+            const fileUrl = `/uploads/${file?.filename}`;
+
+            const media = {
+                fileName: file?.originalname,
+                fileType: file?.mimetype,
+                url: fileUrl,
+            };
+
+            handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `File stored successfully`,
+                data: media,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
     public static async createGroup(req: CustomRequest, res: Response, next: NextFunction) {
         try {
@@ -63,9 +87,10 @@ export class GroupController {
                 }
             });
             /* Create the notification message */
-            const notificationDetails = {
+            const notificationDetails: NotificationDetails = {
                 users: notificationUsers,
                 type: "in-app",
+                channel: "messages",
                 data: group.id,
             };
 
@@ -97,6 +122,8 @@ export class GroupController {
                 addMessageSchema /* Validate the input data using the schema */
             );
 
+            console.log(inputData);
+
             /* send the data to the service layer to add the message in the group chat */
             const { data: message, duration } = await measureTime(async () => groupService.addMessage(
                 inputData.userId!,
@@ -119,6 +146,32 @@ export class GroupController {
     }
 
     /* GET requests */
+    public static async getUserGroups(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id,
+                },
+                getUserGroupsSchema,
+            );
+
+            /* Send the data to the service layer to fetch the groups the user is part of */
+            const { data: groups, duration } = await measureTime(
+                async () => groupService.getUserGroups(inputData.userId!),
+                `Get-user-groups`
+            );
+            
+            handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `Groups retrieved successfully`,
+                data: groups,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
     public static async getGroupData(req: CustomRequest, res: Response, next: NextFunction) {
         try {
@@ -163,6 +216,7 @@ export class GroupController {
 
     public static async getGroupMessages(req: CustomRequest, res: Response, next: NextFunction) {
         try {
+            console.log("here");
             const inputData = validateData(
                 {
                     userId: req.user?.user_id, /* Get the user ID from the request */
@@ -305,6 +359,8 @@ export class GroupController {
                 updateGroupPhotoSchema, /* Validate the input data using the schema */
             );
 
+            console.log(inputData)
+
             /* Send the data to the service layer to update the group photo */
             const { data: updatedGroup, duration } = await measureTime(async () => groupService.updateGroupPhoto(
                 inputData.userId!,
@@ -327,6 +383,7 @@ export class GroupController {
 
     public static async addMembers(req: CustomRequest, res: Response, next: NextFunction) {
         try {
+            console.log(req.params);
             const inputData = validateData(
                 {
                     userId: req.user?.user_id, /* Get the user ID from the request */
@@ -460,9 +517,10 @@ export class GroupController {
             });
 
             /* Generate the notification data */
-            const notificationDetails = {
+            const notificationDetails: NotificationDetails = {
                 users: notificationUsers,
                 type: "in-app",
+                channel: "messages",
                 data: undefined,
             };
 

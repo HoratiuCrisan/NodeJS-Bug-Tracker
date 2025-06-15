@@ -2,17 +2,17 @@ import { GroupConversation, Message } from "../types/Conversation";
 import { v4 } from "uuid";
 import { MessageMedia } from "../types/Conversation";
 import { GroupRepository } from "../repository/groupRepository";
-import { SocketService } from "./socketService";
+import { socketService } from "./socketService";
 import { AppError } from "@bug-tracker/usermiddleware";
 
 export class GroupService {
 
     private groupRepository: GroupRepository;
-    private socketService: SocketService;
+    // private socketService: SocketService;
 
     constructor() {
         this.groupRepository = new GroupRepository();
-        this.socketService = new SocketService();
+        // this.socketService = new SocketService();
     }
     /**
      * 
@@ -45,6 +45,7 @@ export class GroupService {
             photoUrl,
             createdAt: creationTimestamp,
             lastMessage: null,
+            lastMessageTimestamp: null,
         };
 
         /* Return the group data, after being added in the database inside the repository layer */
@@ -76,7 +77,7 @@ export class GroupService {
         /* Create the Message object with the data form the function parameters*/
         const message: Message = {
             id: v4(), /* Generate a unique ID for the message */
-            author: userId, /* The author is the ID of the user that sent the message */
+            authorId: userId, /* The author is the ID of the user that sent the message */
             conversation: groupId, /* The group in wich the message was sent */
             text,
             media,
@@ -86,13 +87,24 @@ export class GroupService {
             readBy,  /* List of users that have read the message */
             unreadBy: members, /* Add all the members of the group into a list to know which users did not view the message */
         };
+        
+        console.log("Group id: ", groupId)
+        const response = await this.groupRepository.addMessage(message);
 
         /* Send the message to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "new-group-message", message);
+        try {
+            socketService.emitEventToRoom(groupId, "new-group-message", JSON.parse(JSON.stringify(response)));
+        } catch (error) {
+            console.error("Socket emit failed: ", error);
+        }
 
         /* Send the message to the repository layer to add it to the group chat database */
         /* Return the message data */
-        return await this.groupRepository.addMessage(message);
+        return response;
+    }
+
+    async getUserGroups(userId: string): Promise<GroupConversation[]> {
+        return await this.groupRepository.getUserGroups(userId);
     }
 
     /**
@@ -166,7 +178,7 @@ export class GroupService {
         const updatedGroup = await this.groupRepository.updateGroupTitle(groupId, title);
 
         /* Send the updated group data to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-title-updated", updatedGroup);
+        socketService.emitEventToRoom(groupId, "group-title-updated", updatedGroup);
 
         /* Return the updated group data */
         return updatedGroup;
@@ -190,7 +202,7 @@ export class GroupService {
         const updatedGroup = await this.groupRepository.updateGroupDescription(groupId, description);
 
         /* Send the updated group data to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-description-updated", updatedGroup);
+        socketService.emitEventToRoom(groupId, "group-description-updated", updatedGroup);
  
         /* Return the updated group data */
         return updatedGroup;
@@ -214,7 +226,7 @@ export class GroupService {
         const updatedGroup = await this.groupRepository.updateGroupPhoto(groupId, photoUrl);
 
         /* Send the updated group data to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-photo-updated", updatedGroup);
+        socketService.emitEventToRoom(groupId, "group-photo-updated", updatedGroup);
 
         /* Return the updated group data */
         return updatedGroup;
@@ -234,7 +246,7 @@ export class GroupService {
 
         /* Check if the user that sent the request is the author of the message */
         /* Throw an error if the user is not the author */
-        if (userId !== messageData.author) {
+        if (userId !== messageData.authorId) {
             throw new AppError(`UnauthorizedRequest`, 403, `Failed to update the message. User is the author of the message`);
         }
 
@@ -246,7 +258,7 @@ export class GroupService {
         const updatedMessage = await this.groupRepository.updateGroupMessage(messageId, groupId, messageData);
 
         /* Send the updated message to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-message-updated", updatedMessage);
+        socketService.emitEventToRoom(groupId, "group-message-updated", updatedMessage);
 
         /* Return the updated message data */
         return updatedMessage;
@@ -276,7 +288,7 @@ export class GroupService {
         const updatedGroup = await this.groupRepository.updateGroupMembers(groupId, Array.from(membersSet));
 
         /* Send the updated group data to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-members-updated", updatedGroup);
+        socketService.emitEventToRoom(groupId, "group-members-updated", updatedGroup);
 
         /* Return the updated group data */
         return updatedGroup;
@@ -306,7 +318,7 @@ export class GroupService {
         const updatedGroup = await this.groupRepository.updateGroupMembers(groupId, updatedMembers);
     
         /* Send the updated group data to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-members-removed", updatedGroup);
+        socketService.emitEventToRoom(groupId, "group-members-removed", updatedGroup);
 
         /* Return the updated group data */
         return updatedGroup;
@@ -352,7 +364,7 @@ export class GroupService {
         }); 
 
         /* Send the viewed messages to the group chat room */
-        this.socketService.emitEventToRoom(groupId, "group-messages-viewed", viewedMessages);
+        socketService.emitEventToRoom(groupId, "group-messages-viewed", viewedMessages);
 
         /* Return the array with the updated messages */
         return viewedMessages;
@@ -377,12 +389,12 @@ export class GroupService {
             /* The message can be deleted if the user that sent the request is:
                 the admin of the group
                 the author of the message */
-            if (messageData.author !== userId || userId !== groupData.admin) {
+            if (messageData.authorId !== userId || userId !== groupData.admin) {
                 throw new AppError(`UnauthorizedRequest`, 403, `Failed to delete message. User is not the author or an admin`);
             }
 
             /* Send the IDs of the deleted messages to the group chat room */
-            this.socketService.emitEventToRoom(groupId, "group-message-deleted", messageId);
+           socketService.emitEventToRoom(groupId, "group-message-deleted", messageId);
 
             /* Delete the message from the group chat */
             await this.groupRepository.deleteGroupMessage(messageId, groupId);
@@ -428,7 +440,7 @@ export class GroupService {
 
         /* Notify each member from the members list about the event */
         members.forEach((member: string) => {
-            this.socketService.emitEventToUser(member, event, data);
+            socketService.emitEventToRoom(member, event, data);
         });
     }
 

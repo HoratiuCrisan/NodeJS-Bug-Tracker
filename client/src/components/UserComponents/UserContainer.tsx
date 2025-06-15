@@ -1,8 +1,9 @@
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useContext} from "react";
 import { ErrorDialog } from "../ErrorDialog";
 import { getUsers } from "../../api/users";
 import { User } from "../../types/User";
 import { UserCard } from "./UserCard";
+import { UserContext } from "../../context/UserProvider";
 
 type UserContainerType = {
     orderBy: string;
@@ -11,6 +12,7 @@ type UserContainerType = {
 };
 
 export const UserContainer: React.FC<UserContainerType> = ({orderBy, orderDirection, limit}) => {
+    const {onlineUsers} = useContext(UserContext);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [users, setUsers] = useState<User[]>([]);
     const [startAfter, setStartAfter] = useState<string | undefined>(undefined);
@@ -22,7 +24,12 @@ export const UserContainer: React.FC<UserContainerType> = ({orderBy, orderDirect
             try {
                 const response: User[] = await getUsers(orderBy, orderDirection, limit, startAfter);
 
-                setUsers(response);
+                const usersWithStatus = response.map((user) => ({
+                    ...user,
+                    status: onlineUsers.includes(user.id) ? "online" as const: "offline" as const,
+                }));
+
+                setUsers(usersWithStatus)
 
                 /* Set the ID of the last user retrieved */
                 setStartAfter(response[response.length - 1].id);
@@ -38,10 +45,20 @@ export const UserContainer: React.FC<UserContainerType> = ({orderBy, orderDirect
         if (isLoading) {
             fetchUsersData();
         }
-    }, []);
+    }, [isLoading, orderBy, orderDirection, limit, onlineUsers]);
+
+    useEffect(() => {
+        console.log(onlineUsers)
+        setUsers((prevUsers) =>
+            prevUsers.map((user) => ({
+                ...user,
+                status: onlineUsers.includes(user.id) ? "online" : "offline",
+            }))
+        );
+  }, [onlineUsers]);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 p-4">
             {users.map((user: User, index) => (
                 <UserCard
                     key={index} 

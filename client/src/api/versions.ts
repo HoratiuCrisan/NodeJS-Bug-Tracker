@@ -32,7 +32,9 @@ const getItemVersion = async (itemId: string, versionId: string, type: string): 
  */
 const getItemVersions = async (itemId: string, type: string, limit: number, startAfter?: string): Promise<TicketVersion[] | TaskVersion[] | SubtaskVersion[]> => {
     /* Send the reqeust to the version server */
-    const response = await axios.get(`/$${type}/${itemId}?limit=${limit}&startAfter=${startAfter}`);
+    const response = await axios.get(`/${type}/${itemId}?limit=${limit}&startAfter=${startAfter}`);
+
+    console.log(response);
 
     /* Return the response data */
     if (type === "ticket") return response.data.data as TicketVersion[];

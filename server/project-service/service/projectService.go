@@ -47,7 +47,7 @@ func (s *projectService) CreateProject(ctx context.Context, title, description, 
 	}
 
 	// Get the timestamp of the project creation
-	now := time.Now().Unix()
+	now := time.Now().UnixMilli()
 
 	// Generate the project model
 	projectData := model.Project{
@@ -97,7 +97,7 @@ func (s *projectService) GenerateInvitationLink(ctx context.Context, projectId s
 
 	// Generate the invitation URL
 	baseUrl := utils.EnvInstances.CLIENT_URL + "invite"
-	return fmt.Sprintf("%s?code=%s&expires=%d", baseUrl, project.Code, expirationTime.Unix()), nil
+	return fmt.Sprintf("%s?code=%s&expires=%d", baseUrl, project.Code, expirationTime.UnixMilli()), nil
 }
 
 // GetProjects retrieves data from the controller and sends it to the repository layer to retrieve a list of projects
@@ -281,7 +281,7 @@ func (s *projectService) RemoveProjectMembers(ctx context.Context, projectId str
 //   - An error that occured during the updating process
 func (s *projectService) JoinProjectMembers(ctx context.Context, userId string, code string, expiration int64) (model.Project, error) {
 	// Check if the expiration time has passed
-	if time.Now().Unix() > expiration {
+	if time.Now().UnixMilli() > expiration {
 		return model.Project{}, errors.New("invitation expired")
 	}
 

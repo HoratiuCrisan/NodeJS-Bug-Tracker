@@ -2,6 +2,7 @@ import { Router } from "express";
 import { checkRequestError, verifyUserRole } from "@bug-tracker/usermiddleware";
 import { verifyToken } from "@bug-tracker/usermiddleware"
 import { ChatController } from "../controller/chatController";
+import { upload } from "../config/multer";
 
 const router = Router();
 
@@ -14,6 +15,15 @@ router.post(
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
     ChatController.createConversation,
 );
+
+router.post(
+    "/upload/files", 
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    upload.single("file"),
+    ChatController.upload,
+)
 
 router.post(
     "/:conversationId",
@@ -31,6 +41,14 @@ router.get(
     checkRequestError,
     verifyUserRole(["user", "developer", "project-manager", "admin"]),
     ChatController.getUserConversations,
+);
+
+router.get(
+    "/exists/:receiverId",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    ChatController.checkConversation,
 );
 
 router.get(

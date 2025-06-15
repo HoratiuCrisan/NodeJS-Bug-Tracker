@@ -2,7 +2,10 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"github.com/horatiucrisan/task-service/model"
 )
 
 // EncodeData retrieves the data from the controller and encodes it into json format an returns it with the response
@@ -16,8 +19,15 @@ func EncodeData(w http.ResponseWriter, r *http.Request, data any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
+	encodedData := model.EncodedResponse{
+		Success: true,
+		Message: fmt.Sprintf("Data encoded successfully"),
+		Data:    data,
+	}
+
 	// Encode the data into the JSON format and return it
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+	if err := json.NewEncoder(w).Encode(encodedData); err != nil {
+		fmt.Printf("%+v", err)
 		return err
 	}
 

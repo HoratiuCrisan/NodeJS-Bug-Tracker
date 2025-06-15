@@ -10,10 +10,7 @@ import { auth } from "../config/firebase";
 const getAxiosInstance = (endpoit: string) => {
     const axiosInstance = axios.create({
         baseURL: endpoit,
-        timeout: 500,
-        headers: {
-            "Content-Type": "application/json",
-        },
+        timeout: 5000,
     });
 
     axiosInstance.interceptors.request.use(
@@ -21,6 +18,7 @@ const getAxiosInstance = (endpoit: string) => {
             const user = auth.currentUser;
             if (user) {
                 const token = await user.getIdToken();
+                // console.log(token);
                 
                 if (token && config.headers) {
                     config.headers.set(`Authorization`, `Bearer ${token}`);

@@ -12,7 +12,7 @@ export const Home = () => {
     }    
 
     return (
-        <div className='block mt-4 lg:pl-10'>
+        <div className='px-4 lgpx-0 block mt-4 lg:pl-10'>
             <div className='flex text-xl font-semibold font-sans'>
                 <span className='mt-1 text-2xl'>
                     <FaRegEnvelope />

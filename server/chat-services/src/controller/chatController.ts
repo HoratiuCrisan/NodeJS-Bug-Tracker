@@ -8,6 +8,7 @@ import {
 } from "@bug-tracker/usermiddleware";
 import {
     createConversationSchema,
+    checkConversationSchema,
     addMessageSchema,
     getConversationSchema,
     getMessageSchema,
@@ -24,6 +25,29 @@ const chatService = new ChatService();
 
 export class ChatController {
     /* POST requests */
+    public static async upload(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const file = req.file;
+
+            const fileUrl = `/uploads/${file?.filename}`;
+
+            const media = {
+                fileName: file?.originalname,
+                fileType: file?.mimetype,
+                url: fileUrl,
+            };
+
+            handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: `File stored successfully`,
+                data: media,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
 
     public static async createConversation(req: CustomRequest, res: Response, next: NextFunction) {
         try {
@@ -112,6 +136,35 @@ export class ChatController {
                 httpCode: 201,
                 message: `Conversation retrieved successfully`,
                 data: conversation,
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    public static async checkConversation(req: CustomRequest, res: Response, next: NextFunction) {
+        try {
+            const inputData = validateData(
+                {
+                    userId: req.user?.user_id,
+                    receiverId: req.params.receiverId,
+                },
+                checkConversationSchema
+            );
+
+            console.log(inputData);
+
+            const { data: conversation, duration } = await measureTime(
+                async () => chatService.checkConversation(inputData.userId!, inputData.receiverId),
+                "Check-direct-conversation"
+            );
+
+            await handleResponseSuccess({
+                req,
+                res,
+                httpCode: 201,
+                message: "Checking conversation existance successfully",
+                data: conversation
             });
         } catch (error) {
             next(error);

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { GroupController } from "../controller/groupController";
 import { checkRequestError, verifyToken, verifyUserRole } from "@bug-tracker/usermiddleware";
+import { upload } from "../config/multer";
 
 const groupRouter = Router();
 
@@ -15,6 +16,15 @@ groupRouter.post(
 );
 
 groupRouter.post(
+    "/upload/files",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["user", "developer", "project-manager", "admin"]),
+    upload.single("file"),
+    GroupController.upload,
+);
+
+groupRouter.post(
     "/:groupId",
     verifyToken,
     checkRequestError,
@@ -23,6 +33,14 @@ groupRouter.post(
 );
 
 /* GET requests */
+
+groupRouter.get(
+    "/list",
+    verifyToken,
+    checkRequestError,
+    verifyUserRole(["developer", "project-manager", "admin"]),
+    GroupController.getUserGroups,
+);
 
 groupRouter.get(
     "/:groupId",
@@ -51,7 +69,7 @@ groupRouter.get(
 /* PUT requests */
 
 groupRouter.put(
-    "/:griupId/title",
+    "/:groupId/title",
     verifyToken,
     checkRequestError,
     verifyUserRole(["developer", "project-manager", "admin"]),
@@ -75,7 +93,7 @@ groupRouter.put(
 );
 
 groupRouter.put(
-    "/:grouopId/addMembers",
+    "/:groupId/addMembers",
     verifyToken,
     checkRequestError,
     verifyUserRole(["developer", "project-manager", "admin"]),

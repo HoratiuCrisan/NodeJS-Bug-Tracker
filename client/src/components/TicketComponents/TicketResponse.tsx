@@ -42,6 +42,8 @@ export const TicketResponse: React.FC<TicketResponseType> = ({ticket}) => {
         try {
             /* Send the update request with the updated response data */
             await updateTicketById(ticket.id, updatedTicket);
+
+            window.location.reload();
         } catch (error) {
             console.error(error);
             return;

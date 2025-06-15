@@ -36,7 +36,6 @@ const useAxiosInterceptors = () => {
                     photoURL: user.photoURL, 
                     providerId: user.providerId,
                 };
-
             };
             
     
